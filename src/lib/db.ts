@@ -36,18 +36,23 @@ let sqliteDb: SqliteDb | null = null;
 
 function getSqlite(): SqliteDb {
   if (sqliteDb) return sqliteDb;
+  // Local only — Railway uses PostgreSQL (optionalDependency)
   // eslint-disable-next-line @typescript-eslint/no-require-imports
   const Database = require("better-sqlite3") as new (
     path: string
   ) => SqliteDb;
-  const path = process.env.DATABASE_URL?.replace("file:", "") || "./data/dev.db";
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
   const fs = require("fs") as typeof import("fs");
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
   const pathMod = require("path") as typeof import("path");
-  const full = pathMod.isAbsolute(path)
-    ? path
-    : pathMod.join(process.cwd(), path);
-  fs.mkdirSync(pathMod.dirname(full), { recursive: true });
-  sqliteDb = new Database(full);
+  const cwd = /* turbopackIgnore: true */ process.cwd();
+  const raw = process.env.DATABASE_URL?.replace(/^file:/, "") || "data/dev.db";
+  const relative = raw.startsWith("./") ? raw.slice(2) : raw;
+  const dbPath = pathMod.isAbsolute(raw)
+    ? raw
+    : pathMod.join(cwd, relative);
+  fs.mkdirSync(pathMod.dirname(dbPath), { recursive: true });
+  sqliteDb = new Database(dbPath);
   sqliteDb.pragma("journal_mode = WAL");
   sqliteDb.pragma("foreign_keys = ON");
   return sqliteDb;

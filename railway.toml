@@ -1,6 +1,7 @@
 [build]
 builder = "NIXPACKS"
-buildCommand = "npm install && npm run build"
+# Railway sets NODE_ENV=production during install; force full install for Next.js build
+buildCommand = "npm ci --include=dev && npm run build"
 
 [deploy]
 startCommand = "npm run start"
