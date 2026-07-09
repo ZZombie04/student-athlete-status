@@ -1,0 +1,78 @@
+"use client";
+
+import Link from "next/link";
+import { usePathname } from "next/navigation";
+import { GraduationCap, Shield } from "lucide-react";
+
+export default function Header() {
+  const pathname = usePathname();
+  const isAdmin = pathname?.startsWith("/admin");
+
+  return (
+    <header className="sticky top-0 z-40 border-b border-slate-200/80 bg-white/80 backdrop-blur-xl">
+      <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-3 sm:px-6">
+        <Link href="/" className="flex items-center gap-2.5 group">
+          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-blue-600 to-sky-500 text-white shadow-lg shadow-blue-500/25 group-hover:scale-105 transition-transform">
+            <GraduationCap className="h-5 w-5" />
+          </div>
+          <div className="leading-tight">
+            <div className="text-sm font-bold text-slate-900 sm:text-base">
+              학생선수 기초학력 현황
+            </div>
+            <div className="text-[11px] text-slate-500 sm:text-xs">
+              경기도교육청 · 2026학년도 1학기
+            </div>
+          </div>
+        </Link>
+
+        <nav className="flex items-center gap-1 sm:gap-2">
+          {!isAdmin && (
+            <>
+              <Link
+                href="/"
+                className={`rounded-lg px-3 py-2 text-sm font-medium transition ${
+                  pathname === "/"
+                    ? "bg-blue-50 text-blue-700"
+                    : "text-slate-600 hover:bg-slate-50"
+                }`}
+              >
+                홈
+              </Link>
+              <Link
+                href="/submit"
+                className={`rounded-lg px-3 py-2 text-sm font-medium transition ${
+                  pathname === "/submit"
+                    ? "bg-blue-50 text-blue-700"
+                    : "text-slate-600 hover:bg-slate-50"
+                }`}
+              >
+                신규 제출
+              </Link>
+              <Link
+                href="/view"
+                className={`rounded-lg px-3 py-2 text-sm font-medium transition ${
+                  pathname === "/view"
+                    ? "bg-blue-50 text-blue-700"
+                    : "text-slate-600 hover:bg-slate-50"
+                }`}
+              >
+                입력 확인
+              </Link>
+            </>
+          )}
+          <Link
+            href="/admin"
+            className={`ml-1 inline-flex items-center gap-1.5 rounded-lg px-3 py-2 text-sm font-medium transition ${
+              isAdmin
+                ? "bg-slate-900 text-white"
+                : "text-slate-500 hover:bg-slate-100"
+            }`}
+          >
+            <Shield className="h-3.5 w-3.5" />
+            <span className="hidden sm:inline">관리자</span>
+          </Link>
+        </nav>
+      </div>
+    </header>
+  );
+}
