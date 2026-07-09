@@ -327,7 +327,7 @@ export default function SubmissionForm({
                     종목 행
                   </span>
                 </div>
-                {idx > 0 ? (
+                {idx > 0 && (
                   <button
                     type="button"
                     className="btn btn-danger !py-1.5 !px-2.5 text-xs"
@@ -336,10 +336,6 @@ export default function SubmissionForm({
                     <Trash2 className="h-3.5 w-3.5" />
                     줄 삭제
                   </button>
-                ) : (
-                  <span className="text-[11px] text-slate-400">
-                    기본 행 (삭제 불가)
-                  </span>
                 )}
               </div>
 
