@@ -4,6 +4,11 @@ import { createSubmission } from "@/lib/db";
 import { normalizeSchoolName } from "@/lib/school-name";
 import { REGIONS, SCHOOL_LEVELS, SPORTS } from "@/lib/constants";
 import type { SchoolLevel } from "@/lib/constants";
+import {
+  enforceRateLimit,
+  withSecurityHeaders,
+  safeError,
+} from "@/lib/security";
 
 const sportSchema = z.object({
   sport: z.string().min(1),
@@ -29,13 +34,21 @@ const bodySchema = z.object({
 });
 
 export async function POST(req: NextRequest) {
+  const limited = enforceRateLimit(req, "school-submit", 20, 60_000);
+  if (limited) return withSecurityHeaders(limited);
+
   try {
     const json = await req.json();
     const parsed = bodySchema.safeParse(json);
     if (!parsed.success) {
-      return NextResponse.json(
-        { error: parsed.error.issues[0]?.message || "입력값이 올바르지 않습니다." },
-        { status: 400 }
+      return withSecurityHeaders(
+        NextResponse.json(
+          {
+            error:
+              parsed.error.issues[0]?.message || "입력값이 올바르지 않습니다.",
+          },
+          { status: 400 }
+        )
       );
     }
 
@@ -89,20 +102,23 @@ export async function POST(req: NextRequest) {
       })),
     });
 
-    return NextResponse.json({ success: true, data: result });
+    return withSecurityHeaders(
+      NextResponse.json({ success: true, data: result })
+    );
   } catch (e) {
     const msg = e instanceof Error ? e.message : "서버 오류";
     if (msg === "DUPLICATE_SCHOOL") {
-      return NextResponse.json(
-        {
-          error:
-            "이미 저장된 기록이 있습니다. 관리자(담당 장학사)에게 문의해 주세요.",
-          code: "DUPLICATE_SCHOOL",
-        },
-        { status: 409 }
+      return withSecurityHeaders(
+        NextResponse.json(
+          {
+            error:
+              "이미 저장된 기록이 있습니다. 관리자(담당 장학사)에게 문의해 주세요.",
+            code: "DUPLICATE_SCHOOL",
+          },
+          { status: 409 }
+        )
       );
     }
-    console.error(e);
-    return NextResponse.json({ error: msg }, { status: 500 });
+    return withSecurityHeaders(safeError("서버 오류", 500, e));
   }
 }

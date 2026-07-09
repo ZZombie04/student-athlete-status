@@ -21,6 +21,7 @@ import {
 import { normalizeSchoolName, schoolLevelLabel } from "@/lib/school-name";
 import type { SportEntryInput, SubmissionPublic } from "@/lib/types";
 import IntInput from "@/components/IntInput";
+import { downloadSchoolExcel } from "@/lib/download-school-excel";
 
 function emptySport(): SportEntryInput {
   return {
@@ -138,6 +139,7 @@ export default function SubmissionForm({
     setSubmitting(true);
     try {
       if (mode === "create") {
+        const pwForDownload = password;
         const res = await fetch("/api/submissions", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -158,22 +160,38 @@ export default function SubmissionForm({
           return;
         }
         toast.success("제출이 완료되었습니다!", {
-          description: `${json.data.schoolName} 데이터가 저장되었습니다.`,
+          description: `${json.data.schoolName} 저장 · 본교 엑셀 다운로드 중…`,
           icon: <CheckCircle2 className="h-4 w-4" />,
         });
         setShowConfirm(false);
+
+        // 본인 학교만 담긴 엑셀 자동 다운로드 (학교급 탭 + 통계)
+        const dl = await downloadSchoolExcel({
+          id: json.data.id,
+          password: pwForDownload,
+          schoolName: json.data.schoolName,
+        });
+        if (dl.ok) {
+          toast.success("본교 엑셀 파일이 다운로드되었습니다.");
+        } else {
+          toast.message("저장은 완료되었습니다.", {
+            description:
+              "엑셀 자동 다운로드에 실패했습니다. 입력 확인 메뉴에서 다시 받을 수 있습니다.",
+          });
+        }
+
         onSuccess?.();
-        // reset
         setSports([emptySport()]);
         setSchoolNameRaw("");
         setPassword("");
       } else {
         if (!initial?.id) return;
+        const pw = editPassword || password;
         const res = await fetch(`/api/submissions/${initial.id}`, {
           method: "PUT",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
-            password: editPassword || password,
+            password: pw,
             sports,
           }),
         });
@@ -186,6 +204,16 @@ export default function SubmissionForm({
           description: `${json.data.schoolName} 데이터가 업데이트되었습니다.`,
         });
         setShowConfirm(false);
+
+        const dl = await downloadSchoolExcel({
+          id: json.data.id,
+          password: pw,
+          schoolName: json.data.schoolName,
+        });
+        if (dl.ok) {
+          toast.success("수정된 본교 엑셀이 다운로드되었습니다.");
+        }
+
         onSuccess?.();
       }
     } catch {

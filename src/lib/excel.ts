@@ -306,6 +306,59 @@ function buildAggFromSubmissions(submissions: SubmissionRecord[]): RegionAgg {
   return result;
 }
 
+const LEVEL_SHEET: Record<SchoolLevel, string> = {
+  초: "초등학교",
+  중: "중학교",
+  고: "고등학교",
+};
+
+/**
+ * 학교 본인용: 해당 학교급 탭 1개 + 통계 탭만
+ * (다른 학교 데이터 포함하지 않음)
+ */
+export async function exportSchoolWorkbook(
+  submission: SubmissionRecord
+): Promise<Buffer> {
+  const wb = await loadTemplate();
+  const level = submission.schoolLevel;
+  const keepSchoolName = LEVEL_SHEET[level];
+
+  const elem = wb.getWorksheet("초등학교");
+  const mid = wb.getWorksheet("중학교");
+  const high = wb.getWorksheet("고등학교");
+  const stats = wb.getWorksheet("(지역명) 통계") || wb.worksheets[3];
+
+  // 다른 학교급 시트 제거
+  const toRemove: string[] = [];
+  for (const ws of [elem, mid, high]) {
+    if (ws && ws.name !== keepSchoolName) toRemove.push(ws.name);
+  }
+  for (const name of toRemove) {
+    try {
+      wb.removeWorksheet(name);
+    } catch {
+      /* ignore */
+    }
+  }
+
+  const schoolSheet =
+    wb.getWorksheet(keepSchoolName) ||
+    (level === "초" ? elem : level === "중" ? mid : high);
+
+  fillSchoolSheet(schoolSheet!, level, flattenSubmissions([submission], level));
+
+  const agg = buildAggFromSubmissions([submission]);
+  fillStatsSheet(
+    stats!,
+    agg,
+    `${submission.schoolName} (${submission.region})`
+  );
+  stats!.name = "통계".slice(0, 31);
+
+  const buf = await wb.xlsx.writeBuffer();
+  return Buffer.from(buf);
+}
+
 /**
  * 원본 서식 4탭 유지 + 제출 데이터 누적 반영
  * sheets: 초등학교 | 중학교 | 고등학교 | (지역명) 통계

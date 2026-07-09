@@ -2,11 +2,12 @@
 
 import { useState } from "react";
 import { toast } from "sonner";
-import { LogIn, ArrowLeft } from "lucide-react";
+import { LogIn, ArrowLeft, Download } from "lucide-react";
 import Header from "@/components/Header";
 import SubmissionForm from "@/components/SubmissionForm";
 import { REGIONS, SCHOOL_LEVELS, type SchoolLevel } from "@/lib/constants";
 import type { SubmissionPublic } from "@/lib/types";
+import { downloadSchoolExcel } from "@/lib/download-school-excel";
 
 export default function ViewPage() {
   const [region, setRegion] = useState("");
@@ -16,6 +17,29 @@ export default function ViewPage() {
   const [loading, setLoading] = useState(false);
   const [data, setData] = useState<SubmissionPublic | null>(null);
   const [authPassword, setAuthPassword] = useState("");
+  const [downloading, setDownloading] = useState(false);
+
+  async function handleDownloadExcel() {
+    if (!data?.id || !authPassword) {
+      toast.error("로그인 후 이용할 수 있습니다.");
+      return;
+    }
+    setDownloading(true);
+    try {
+      const result = await downloadSchoolExcel({
+        id: data.id,
+        password: authPassword,
+        schoolName: data.schoolName,
+      });
+      if (result.ok) {
+        toast.success("본교 엑셀 파일이 다운로드되었습니다.");
+      } else {
+        toast.error(result.error);
+      }
+    } finally {
+      setDownloading(false);
+    }
+  }
 
   async function handleLogin(e: React.FormEvent) {
     e.preventDefault();
@@ -157,12 +181,23 @@ export default function ViewPage() {
                 <ArrowLeft className="h-4 w-4" />
                 다른 학교 조회
               </button>
-              <div className="text-sm text-slate-500">
-                <span className="font-semibold text-slate-800">
-                  {data.schoolName}
-                </span>
-                {" · "}
-                최근 저장 {new Date(data.updatedAt).toLocaleString("ko-KR")}
+              <div className="flex flex-wrap items-center gap-2">
+                <div className="text-sm text-slate-500">
+                  <span className="font-semibold text-slate-800">
+                    {data.schoolName}
+                  </span>
+                  {" · "}
+                  최근 저장 {new Date(data.updatedAt).toLocaleString("ko-KR")}
+                </div>
+                <button
+                  type="button"
+                  className="btn btn-success !py-2 text-sm"
+                  onClick={handleDownloadExcel}
+                  disabled={downloading}
+                >
+                  <Download className="h-4 w-4" />
+                  {downloading ? "생성 중..." : "본교 엑셀 다운"}
+                </button>
               </div>
             </div>
             <SubmissionForm

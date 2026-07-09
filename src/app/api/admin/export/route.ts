@@ -5,21 +5,19 @@ import {
   getSubmissionsByRegion,
 } from "@/lib/db";
 import { exportFullFormWorkbook } from "@/lib/excel";
-
-function checkAdmin(req: NextRequest): boolean {
-  const auth = req.headers.get("x-admin-token");
-  if (!auth) return false;
-  try {
-    const decoded = Buffer.from(auth, "base64").toString("utf8");
-    return decoded.startsWith("admin:");
-  } catch {
-    return false;
-  }
-}
+import {
+  isValidAdminToken,
+  withSecurityHeaders,
+  safeError,
+  enforceRateLimit,
+} from "@/lib/security";
 
 export async function GET(req: NextRequest) {
-  if (!checkAdmin(req)) {
-    return NextResponse.json({ error: "인증이 필요합니다." }, { status: 401 });
+  const limited = enforceRateLimit(req, "admin-export", 20, 60_000);
+  if (limited) return withSecurityHeaders(limited);
+
+  if (!isValidAdminToken(req.headers.get("x-admin-token"))) {
+    return withSecurityHeaders(safeError("인증이 필요합니다.", 401));
   }
 
   try {
@@ -27,9 +25,8 @@ export async function GET(req: NextRequest) {
 
     if (region) {
       if (!REGIONS.includes(region as (typeof REGIONS)[number])) {
-        return NextResponse.json(
-          { error: "유효하지 않은 교육지원청입니다." },
-          { status: 400 }
+        return withSecurityHeaders(
+          safeError("유효하지 않은 교육지원청입니다.", 400)
         );
       }
       const submissions = await getSubmissionsByRegion(region);
@@ -41,16 +38,17 @@ export async function GET(req: NextRequest) {
       const filename = encodeURIComponent(
         `2026_1학기_학생선수_기초학력프로그램_이수현황_${short}.xlsx`
       );
-      return new NextResponse(new Uint8Array(buffer), {
-        headers: {
-          "Content-Type":
-            "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-          "Content-Disposition": `attachment; filename*=UTF-8''${filename}`,
-        },
-      });
+      return withSecurityHeaders(
+        new NextResponse(new Uint8Array(buffer), {
+          headers: {
+            "Content-Type":
+              "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            "Content-Disposition": `attachment; filename*=UTF-8''${filename}`,
+          },
+        })
+      );
     }
 
-    // 경기도 전체: 초·중·고·통계 4탭 누적 취합
     const submissions = await getAllSubmissions();
     const buffer = await exportFullFormWorkbook(submissions, {
       titleSuffix: "경기도 전체",
@@ -58,18 +56,18 @@ export async function GET(req: NextRequest) {
     const filename = encodeURIComponent(
       `2026_1학기_학생선수_기초학력프로그램_이수현황_경기도전체취합.xlsx`
     );
-    return new NextResponse(new Uint8Array(buffer), {
-      headers: {
-        "Content-Type":
-          "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-        "Content-Disposition": `attachment; filename*=UTF-8''${filename}`,
-      },
-    });
+    return withSecurityHeaders(
+      new NextResponse(new Uint8Array(buffer), {
+        headers: {
+          "Content-Type":
+            "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+          "Content-Disposition": `attachment; filename*=UTF-8''${filename}`,
+        },
+      })
+    );
   } catch (e) {
-    console.error(e);
-    return NextResponse.json(
-      { error: "엑셀 생성 중 오류가 발생했습니다." },
-      { status: 500 }
+    return withSecurityHeaders(
+      safeError("엑셀 생성 중 오류가 발생했습니다.", 500, e)
     );
   }
 }
