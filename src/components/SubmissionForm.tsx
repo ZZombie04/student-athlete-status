@@ -252,7 +252,7 @@ export default function SubmissionForm({
             <label className="label">학교명 *</label>
             <input
               className="input"
-              placeholder="예: 이솔초, 미달중, 에바다학교"
+              placeholder="학교명을 입력하세요"
               value={schoolNameRaw}
               disabled={isLockedMeta}
               onChange={(e) => setSchoolNameRaw(e.target.value)}
@@ -459,14 +459,14 @@ export default function SubmissionForm({
       {/* Confirm Modal */}
       {showConfirm && (
         <div className="modal-backdrop" role="dialog" aria-modal>
-          <div className="modal-panel">
+          <div className="modal-panel !max-w-3xl">
             <div className="flex items-start justify-between border-b border-slate-100 px-5 py-4">
               <div>
                 <h3 className="text-lg font-bold text-slate-900">
                   최종 입력 내용 확인
                 </h3>
                 <p className="mt-1 text-sm text-slate-500">
-                  아래 내용을 확인한 후 제출하기를 눌러 주세요.
+                  학년별 입력값을 확인한 후 제출하기를 눌러 주세요.
                 </p>
               </div>
               <button
@@ -490,44 +490,112 @@ export default function SubmissionForm({
                 />
                 <Info
                   label="학교명"
-                  value={
-                    normalizedName ||
-                    schoolNameRaw ||
-                    "-"
-                  }
+                  value={normalizedName || schoolNameRaw || "-"}
                 />
                 {mode === "create" && (
-                  <Info label="임시비밀번호" value={"•".repeat(password.length) + ` (${password.length}자리)`} />
+                  <Info
+                    label="임시비밀번호"
+                    value={
+                      "•".repeat(password.length) + ` (${password.length}자리)`
+                    }
+                  />
                 )}
               </div>
 
-              <div className="overflow-x-auto rounded-xl border border-slate-200">
-                <table className="data-table">
-                  <thead>
-                    <tr>
-                      <th>종목</th>
-                      <th>전체</th>
-                      <th>미도달 합</th>
-                      <th>이수 합</th>
-                      <th>기초미달 합</th>
-                      <th>비고</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {sports.map((s, i) => (
-                      <tr key={i}>
-                        <td className="font-medium">{s.sport || "-"}</td>
-                        <td>{s.totalAthletes}</td>
-                        <td>{s.failG1 + s.failG2 + s.failG3}</td>
-                        <td>{s.completeG1 + s.completeG2 + s.completeG3}</td>
-                        <td>
-                          {s.basicFailG1 + s.basicFailG2 + s.basicFailG3}
-                        </td>
-                        <td className="text-slate-500">{s.note || "-"}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
+              <div className="space-y-4">
+                {sports.map((s, i) => (
+                  <div
+                    key={i}
+                    className="overflow-hidden rounded-xl border border-slate-200"
+                  >
+                    <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-100 bg-slate-50 px-4 py-3">
+                      <div className="font-bold text-slate-900">
+                        <span className="mr-2 badge badge-blue">{i + 1}</span>
+                        {s.sport || "종목 미선택"}
+                      </div>
+                      <div className="text-sm text-slate-600">
+                        전체 학생선수{" "}
+                        <strong className="text-slate-900">
+                          {s.totalAthletes}
+                        </strong>
+                        명
+                        {s.note ? (
+                          <span className="ml-2 text-slate-400">
+                            · 비고: {s.note}
+                          </span>
+                        ) : null}
+                      </div>
+                    </div>
+                    <div className="overflow-x-auto p-3">
+                      <table className="data-table text-xs sm:text-sm">
+                        <thead>
+                          <tr>
+                            <th className="!py-2">구분</th>
+                            <th className="!py-2 text-center">{grades[0]}</th>
+                            <th className="!py-2 text-center">{grades[1]}</th>
+                            <th className="!py-2 text-center">{grades[2]}</th>
+                            <th className="!py-2 text-center">합계</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          <tr>
+                            <td className="font-medium text-amber-800">
+                              최저학력기준 미도달
+                            </td>
+                            <td className="text-center tabular-nums">
+                              {s.failG1}
+                            </td>
+                            <td className="text-center tabular-nums">
+                              {s.failG2}
+                            </td>
+                            <td className="text-center tabular-nums">
+                              {s.failG3}
+                            </td>
+                            <td className="text-center font-bold tabular-nums">
+                              {s.failG1 + s.failG2 + s.failG3}
+                            </td>
+                          </tr>
+                          <tr>
+                            <td className="font-medium text-emerald-800">
+                              기초학력프로그램 이수
+                            </td>
+                            <td className="text-center tabular-nums">
+                              {s.completeG1}
+                            </td>
+                            <td className="text-center tabular-nums">
+                              {s.completeG2}
+                            </td>
+                            <td className="text-center tabular-nums">
+                              {s.completeG3}
+                            </td>
+                            <td className="text-center font-bold tabular-nums">
+                              {s.completeG1 + s.completeG2 + s.completeG3}
+                            </td>
+                          </tr>
+                          <tr>
+                            <td className="font-medium text-rose-800">
+                              기초학력 미달 (보장법)
+                            </td>
+                            <td className="text-center tabular-nums">
+                              {s.basicFailG1}
+                            </td>
+                            <td className="text-center tabular-nums">
+                              {s.basicFailG2}
+                            </td>
+                            <td className="text-center tabular-nums">
+                              {s.basicFailG3}
+                            </td>
+                            <td className="text-center font-bold tabular-nums">
+                              {s.basicFailG1 +
+                                s.basicFailG2 +
+                                s.basicFailG3}
+                            </td>
+                          </tr>
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                ))}
               </div>
             </div>
 

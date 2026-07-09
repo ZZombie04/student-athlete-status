@@ -235,34 +235,66 @@ async function main() {
     const body = await json(res);
     assert(body.data?.schoolName === "미달중학교", `중 정규화: ${body.data?.schoolName}`);
 
-    const res2 = await fetch(`${BASE}/api/submissions`, {
+    // 특수학교: 초/중/고 각각 입력 가능
+    for (const level of ["초", "중", "고"]) {
+      const res2 = await fetch(`${BASE}/api/submissions`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          region: "고양교육지원청",
+          schoolLevel: level,
+          schoolName: "에바다학교",
+          password: "1111",
+          sports: [
+            {
+              sport: "기타",
+              totalAthletes: 5,
+              failG1: 0,
+              failG2: 1,
+              failG3: 0,
+              completeG1: 0,
+              completeG2: 1,
+              completeG3: 0,
+              basicFailG1: 0,
+              basicFailG2: 0,
+              basicFailG3: 0,
+              note: "특수학교",
+            },
+          ],
+        }),
+      });
+      const body2 = await json(res2);
+      assert(res2.ok, `특수학교 ${level} 입력 ok`);
+      assert(body2.data?.schoolName === "에바다학교", `특수학교 유지: ${body2.data?.schoolName}`);
+    }
+    // 특수학교 동일 학교급 중복 차단
+    const resDup = await fetch(`${BASE}/api/submissions`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         region: "고양교육지원청",
-        schoolLevel: "고",
+        schoolLevel: "초",
         schoolName: "에바다학교",
-        password: "1111",
+        password: "2222",
         sports: [
           {
             sport: "기타",
-            totalAthletes: 5,
+            totalAthletes: 1,
             failG1: 0,
-            failG2: 1,
+            failG2: 0,
             failG3: 0,
             completeG1: 0,
-            completeG2: 1,
+            completeG2: 0,
             completeG3: 0,
             basicFailG1: 0,
             basicFailG2: 0,
             basicFailG3: 0,
-            note: "특수학교",
+            note: "",
           },
         ],
       }),
     });
-    const body2 = await json(res2);
-    assert(body2.data?.schoolName === "에바다학교", `특수학교 유지: ${body2.data?.schoolName}`);
+    assert(resDup.status === 409, "특수학교 동일 학교급 중복 차단");
   }
 
   // 8. High school another region

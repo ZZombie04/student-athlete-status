@@ -121,7 +121,7 @@ export default function ViewPage() {
                   className="input"
                   value={schoolName}
                   onChange={(e) => setSchoolName(e.target.value)}
-                  placeholder="예: 이솔초등학교"
+                  placeholder="학교명을 입력하세요"
                   required
                 />
               </div>

@@ -1,11 +1,15 @@
 import type { Metadata } from "next";
 import { Toaster } from "sonner";
+import Footer from "@/components/Footer";
 import "./globals.css";
 
 export const metadata: Metadata = {
   title: "학생선수 기초학력프로그램 이수 현황 | 경기도교육청",
   description:
-    "2026학년도 1학기 학생선수 최저학력 기준 기초학력프로그램 이수 현황 제출 시스템",
+    "2026학년도 1학기 학생선수 최저학력 기준 기초학력프로그램 이수 현황",
+  icons: {
+    icon: [{ url: "/favicon.svg", type: "image/svg+xml" }],
+  },
 };
 
 export default function RootLayout({
@@ -23,8 +27,9 @@ export default function RootLayout({
           href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css"
         />
       </head>
-      <body className="min-h-screen antialiased">
-        {children}
+      <body className="flex min-h-screen flex-col antialiased">
+        <div className="flex flex-1 flex-col">{children}</div>
+        <Footer />
         <Toaster
           position="top-center"
           richColors

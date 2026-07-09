@@ -53,6 +53,9 @@ export interface RegionStats {
   region: string;
   submissionCount: number;
   schoolCount: number;
+  countElementary: number;
+  countMiddle: number;
+  countHigh: number;
   totalAthletes: number;
   totalFail: number;
   totalComplete: number;
@@ -77,11 +80,4 @@ export interface DashboardStats {
   byRegion: RegionStats[];
   bySchoolLevel: Record<string, number>;
   bySportTop: Array<{ sport: string; athletes: number }>;
-  recentSubmissions: Array<{
-    id: string;
-    region: string;
-    schoolName: string;
-    schoolLevel: SchoolLevel;
-    createdAt: string;
-  }>;
 }

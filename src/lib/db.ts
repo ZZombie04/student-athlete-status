@@ -1,6 +1,7 @@
 import { randomUUID } from "crypto";
 import bcrypt from "bcryptjs";
 import type { SchoolLevel } from "./constants";
+import { isSpecialSchool } from "./school-name";
 import type {
   DashboardStats,
   RegionStats,
@@ -80,8 +81,10 @@ async function getPg(): Promise<PgPool> {
   }
   pgPool = new Pool({
     connectionString,
-    ssl:
-      process.env.NODE_ENV === "production"
+    // Railway public proxy needs SSL; internal hostname often works without
+    ssl: process.env.DATABASE_URL?.includes("railway.internal")
+      ? undefined
+      : process.env.NODE_ENV === "production"
         ? { rejectUnauthorized: false }
         : undefined,
   });
@@ -153,7 +156,7 @@ export async function initDb(): Promise<void> {
         id TEXT PRIMARY KEY,
         region TEXT NOT NULL,
         school_level TEXT NOT NULL,
-        school_name TEXT NOT NULL UNIQUE,
+        school_name TEXT NOT NULL,
         password_hash TEXT NOT NULL,
         created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
         updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
@@ -177,13 +180,24 @@ export async function initDb(): Promise<void> {
       CREATE INDEX IF NOT EXISTS idx_submissions_region ON submissions(region);
       CREATE INDEX IF NOT EXISTS idx_sport_entries_submission ON sport_entries(submission_id);
     `);
+    // Drop old school_name-only unique if present (legacy)
+    try {
+      await execRaw(
+        `ALTER TABLE submissions DROP CONSTRAINT IF EXISTS submissions_school_name_key`
+      );
+    } catch {
+      /* ignore */
+    }
+    await execRaw(
+      `CREATE UNIQUE INDEX IF NOT EXISTS idx_submissions_name_level ON submissions(school_name, school_level)`
+    );
   } else {
     await execRaw(`
       CREATE TABLE IF NOT EXISTS submissions (
         id TEXT PRIMARY KEY,
         region TEXT NOT NULL,
         school_level TEXT NOT NULL,
-        school_name TEXT NOT NULL UNIQUE,
+        school_name TEXT NOT NULL,
         password_hash TEXT NOT NULL,
         created_at TEXT NOT NULL,
         updated_at TEXT NOT NULL
@@ -207,9 +221,47 @@ export async function initDb(): Promise<void> {
       );
       CREATE INDEX IF NOT EXISTS idx_submissions_region ON submissions(region);
       CREATE INDEX IF NOT EXISTS idx_sport_entries_submission ON sport_entries(submission_id);
+      CREATE UNIQUE INDEX IF NOT EXISTS idx_submissions_name_level ON submissions(school_name, school_level);
     `);
+    // Migrate legacy UNIQUE(school_name) SQLite tables
+    await migrateSqliteUniqueIfNeeded();
   }
   initialized = true;
+}
+
+async function migrateSqliteUniqueIfNeeded() {
+  try {
+    const rows = await queryAll(`PRAGMA index_list('submissions')`);
+    const hasLegacy = rows.some((r) => {
+      const name = String(r.name || "");
+      // sqlite auto unique index on school_name alone
+      return (
+        name.includes("school_name") &&
+        !name.includes("name_level") &&
+        Number(r.unique) === 1
+      );
+    });
+    if (!hasLegacy) return;
+
+    await execRaw(`
+      CREATE TABLE IF NOT EXISTS submissions_mig (
+        id TEXT PRIMARY KEY,
+        region TEXT NOT NULL,
+        school_level TEXT NOT NULL,
+        school_name TEXT NOT NULL,
+        password_hash TEXT NOT NULL,
+        created_at TEXT NOT NULL,
+        updated_at TEXT NOT NULL
+      );
+      INSERT OR IGNORE INTO submissions_mig SELECT id, region, school_level, school_name, password_hash, created_at, updated_at FROM submissions;
+      DROP TABLE submissions;
+      ALTER TABLE submissions_mig RENAME TO submissions;
+      CREATE INDEX IF NOT EXISTS idx_submissions_region ON submissions(region);
+      CREATE UNIQUE INDEX IF NOT EXISTS idx_submissions_name_level ON submissions(school_name, school_level);
+    `);
+  } catch {
+    /* ignore migration errors on fresh db */
+  }
 }
 
 /* ─────────────────────────────────────────────
@@ -291,6 +343,28 @@ export async function findBySchoolName(
   return mapSubmission(row, sports);
 }
 
+export async function findBySchoolNameAndLevel(
+  schoolName: string,
+  schoolLevel: string
+): Promise<SubmissionRecord | null> {
+  await initDb();
+  const row = await queryOne(
+    `SELECT * FROM submissions WHERE school_name = ? AND school_level = ?`,
+    [schoolName, schoolLevel]
+  );
+  if (!row) return null;
+  const sports = await loadSports(String(row.id));
+  return mapSubmission(row, sports);
+}
+
+export async function findById(id: string): Promise<SubmissionRecord | null> {
+  await initDb();
+  const row = await queryOne(`SELECT * FROM submissions WHERE id = ?`, [id]);
+  if (!row) return null;
+  const sports = await loadSports(String(row.id));
+  return mapSubmission(row, sports);
+}
+
 export async function findSubmission(
   region: string,
   schoolLevel: string,
@@ -306,6 +380,40 @@ export async function findSubmission(
   return mapSubmission(row, sports);
 }
 
+async function insertSports(submissionId: string, sports: SportEntryInput[]) {
+  for (const s of sports) {
+    await exec(
+      `INSERT INTO sport_entries (
+        id, submission_id, sport, total_athletes,
+        fail_g1, fail_g2, fail_g3,
+        complete_g1, complete_g2, complete_g3,
+        basic_fail_g1, basic_fail_g2, basic_fail_g3, note
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      [
+        randomUUID(),
+        submissionId,
+        s.sport,
+        s.totalAthletes,
+        s.failG1,
+        s.failG2,
+        s.failG3,
+        s.completeG1,
+        s.completeG2,
+        s.completeG3,
+        s.basicFailG1,
+        s.basicFailG2,
+        s.basicFailG3,
+        s.note || "",
+      ]
+    );
+  }
+}
+
+/**
+ * 중복 규칙:
+ * - 일반학교: 학교명만 같으면 중복 (학교급 무관)
+ * - 특수학교(~학교): 동일 학교명+학교급만 중복, 초/중/고 각각 입력 가능
+ */
 export async function createSubmission(data: {
   region: string;
   schoolLevel: SchoolLevel;
@@ -315,9 +423,15 @@ export async function createSubmission(data: {
 }): Promise<SubmissionPublic> {
   await initDb();
 
-  const existing = await findBySchoolName(data.schoolName);
-  if (existing) {
-    throw new Error("DUPLICATE_SCHOOL");
+  if (isSpecialSchool(data.schoolName)) {
+    const existing = await findBySchoolNameAndLevel(
+      data.schoolName,
+      data.schoolLevel
+    );
+    if (existing) throw new Error("DUPLICATE_SCHOOL");
+  } else {
+    const existing = await findBySchoolName(data.schoolName);
+    if (existing) throw new Error("DUPLICATE_SCHOOL");
   }
 
   const id = randomUUID();
@@ -338,34 +452,9 @@ export async function createSubmission(data: {
     ]
   );
 
-  for (const s of data.sports) {
-    await exec(
-      `INSERT INTO sport_entries (
-        id, submission_id, sport, total_athletes,
-        fail_g1, fail_g2, fail_g3,
-        complete_g1, complete_g2, complete_g3,
-        basic_fail_g1, basic_fail_g2, basic_fail_g3, note
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-      [
-        randomUUID(),
-        id,
-        s.sport,
-        s.totalAthletes,
-        s.failG1,
-        s.failG2,
-        s.failG3,
-        s.completeG1,
-        s.completeG2,
-        s.completeG3,
-        s.basicFailG1,
-        s.basicFailG2,
-        s.basicFailG3,
-        s.note || "",
-      ]
-    );
-  }
+  await insertSports(id, data.sports);
 
-  const created = await findBySchoolName(data.schoolName);
+  const created = await findById(id);
   return toPublic(created!);
 }
 
@@ -384,36 +473,46 @@ export async function updateSubmission(
   const now = new Date().toISOString();
   await exec(`UPDATE submissions SET updated_at = ? WHERE id = ?`, [now, id]);
   await exec(`DELETE FROM sport_entries WHERE submission_id = ?`, [id]);
+  await insertSports(id, sports);
 
-  for (const s of sports) {
+  const updated = await findById(id);
+  return toPublic(updated!);
+}
+
+/** 관리자: 비밀번호 검증 없이 수정 (스포츠/임시비번) */
+export async function adminUpdateSubmission(
+  id: string,
+  sports: SportEntryInput[],
+  newPassword?: string
+): Promise<SubmissionPublic> {
+  await initDb();
+  const row = await queryOne(`SELECT * FROM submissions WHERE id = ?`, [id]);
+  if (!row) throw new Error("NOT_FOUND");
+
+  const now = new Date().toISOString();
+  if (newPassword && /^\d{4}$/.test(newPassword)) {
+    const passwordHash = await bcrypt.hash(newPassword, 10);
     await exec(
-      `INSERT INTO sport_entries (
-        id, submission_id, sport, total_athletes,
-        fail_g1, fail_g2, fail_g3,
-        complete_g1, complete_g2, complete_g3,
-        basic_fail_g1, basic_fail_g2, basic_fail_g3, note
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-      [
-        randomUUID(),
-        id,
-        s.sport,
-        s.totalAthletes,
-        s.failG1,
-        s.failG2,
-        s.failG3,
-        s.completeG1,
-        s.completeG2,
-        s.completeG3,
-        s.basicFailG1,
-        s.basicFailG2,
-        s.basicFailG3,
-        s.note || "",
-      ]
+      `UPDATE submissions SET updated_at = ?, password_hash = ? WHERE id = ?`,
+      [now, passwordHash, id]
     );
+  } else {
+    await exec(`UPDATE submissions SET updated_at = ? WHERE id = ?`, [now, id]);
   }
 
-  const updated = await findBySchoolName(String(row.school_name));
+  await exec(`DELETE FROM sport_entries WHERE submission_id = ?`, [id]);
+  await insertSports(id, sports);
+
+  const updated = await findById(id);
   return toPublic(updated!);
+}
+
+export async function deleteSubmission(id: string): Promise<void> {
+  await initDb();
+  const row = await queryOne(`SELECT * FROM submissions WHERE id = ?`, [id]);
+  if (!row) throw new Error("NOT_FOUND");
+  await exec(`DELETE FROM sport_entries WHERE submission_id = ?`, [id]);
+  await exec(`DELETE FROM submissions WHERE id = ?`, [id]);
 }
 
 export async function verifyAndGet(data: {
@@ -508,20 +607,6 @@ export async function getDashboardStats(): Promise<DashboardStats> {
     .sort((a, b) => b.athletes - a.athletes)
     .slice(0, 10);
 
-  const recentSubmissions = [...all]
-    .sort(
-      (a, b) =>
-        new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime()
-    )
-    .slice(0, 15)
-    .map((s) => ({
-      id: s.id,
-      region: s.region,
-      schoolName: s.schoolName,
-      schoolLevel: s.schoolLevel,
-      createdAt: s.updatedAt,
-    }));
-
   return {
     totalSubmissions: all.length,
     totalSchools: all.length,
@@ -531,7 +616,6 @@ export async function getDashboardStats(): Promise<DashboardStats> {
     byRegion,
     bySchoolLevel,
     bySportTop,
-    recentSubmissions,
   };
 }
 
@@ -548,8 +632,15 @@ function buildRegionStats(
   let totalFail = 0;
   let totalComplete = 0;
   let lastSubmittedAt: string | null = null;
+  let countElementary = 0;
+  let countMiddle = 0;
+  let countHigh = 0;
 
   const submissions = list.map((s) => {
+    if (s.schoolLevel === "초") countElementary++;
+    else if (s.schoolLevel === "중") countMiddle++;
+    else if (s.schoolLevel === "고") countHigh++;
+
     let athletes = 0;
     for (const sp of s.sports) {
       athletes += sp.totalAthletes;
@@ -578,6 +669,9 @@ function buildRegionStats(
     region,
     submissionCount: list.length,
     schoolCount: list.length,
+    countElementary,
+    countMiddle,
+    countHigh,
     totalAthletes,
     totalFail,
     totalComplete,

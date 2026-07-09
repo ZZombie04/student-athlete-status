@@ -13,10 +13,10 @@ import {
   AlertTriangle,
   CheckCircle2,
   MapPin,
-  TrendingUp,
   LogOut,
   ChevronRight,
   BarChart3,
+  TrendingUp,
 } from "lucide-react";
 import {
   BarChart,
@@ -137,9 +137,9 @@ export default function AdminPage() {
 
   if (!token) {
     return (
-      <div className="min-h-screen">
+      <div className="flex min-h-full flex-col">
         <Header />
-        <main className="mx-auto flex max-w-md flex-col px-4 py-16">
+        <main className="mx-auto flex w-full max-w-md flex-1 flex-col px-4 py-16">
           <form onSubmit={handleLogin} className="card p-8">
             <div className="mb-6 text-center">
               <div className="mx-auto mb-3 flex h-14 w-14 items-center justify-center rounded-2xl bg-slate-900 text-white shadow-lg">
@@ -159,8 +159,8 @@ export default function AdminPage() {
                   className="input"
                   value={id}
                   onChange={(e) => setId(e.target.value)}
-                  placeholder="관리자"
                   required
+                  autoComplete="username"
                 />
               </div>
               <div>
@@ -170,8 +170,8 @@ export default function AdminPage() {
                   type="password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  placeholder="••••"
                   required
+                  autoComplete="current-password"
                 />
               </div>
               <button
@@ -207,9 +207,9 @@ export default function AdminPage() {
       })) || [];
 
   return (
-    <div className="min-h-screen">
+    <div className="flex min-h-full flex-col">
       <Header />
-      <main className="mx-auto max-w-7xl px-4 py-8 sm:px-6">
+      <main className="mx-auto w-full max-w-7xl flex-1 px-4 py-8 sm:px-6">
         <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
           <div>
             <div className="flex items-center gap-2 text-sm text-slate-500">
@@ -236,11 +236,11 @@ export default function AdminPage() {
           </div>
         </div>
 
-        {/* KPI cards */}
+        {/* KPI */}
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
           <Kpi
             icon={<School className="h-5 w-5" />}
-            label="제출 학교 수"
+            label="제출 건수"
             value={stats?.totalSchools ?? 0}
             color="blue"
           />
@@ -264,100 +264,7 @@ export default function AdminPage() {
           />
         </div>
 
-        {/* Charts */}
-        <div className="mt-6 grid gap-5 lg:grid-cols-3">
-          <div className="card p-5 lg:col-span-2">
-            <div className="mb-4 flex items-center gap-2">
-              <BarChart3 className="h-4 w-4 text-blue-600" />
-              <h2 className="font-bold text-slate-900">지원청별 제출 현황</h2>
-            </div>
-            <div className="h-64">
-              {regionChart.length > 0 ? (
-                <ResponsiveContainer width="100%" height="100%">
-                  <BarChart data={regionChart}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
-                    <XAxis dataKey="name" tick={{ fontSize: 11 }} />
-                    <YAxis allowDecimals={false} tick={{ fontSize: 11 }} />
-                    <Tooltip
-                      contentStyle={{
-                        borderRadius: 12,
-                        border: "1px solid #e2e8f0",
-                        fontFamily: "Pretendard",
-                      }}
-                    />
-                    <Bar
-                      dataKey="count"
-                      name="제출 학교"
-                      fill="#2563eb"
-                      radius={[6, 6, 0, 0]}
-                    />
-                  </BarChart>
-                </ResponsiveContainer>
-              ) : (
-                <EmptyChart />
-              )}
-            </div>
-          </div>
-
-          <div className="card p-5">
-            <div className="mb-4 flex items-center gap-2">
-              <TrendingUp className="h-4 w-4 text-sky-600" />
-              <h2 className="font-bold text-slate-900">학교급 분포</h2>
-            </div>
-            <div className="h-64">
-              {levelChart.some((d) => d.value > 0) ? (
-                <ResponsiveContainer width="100%" height="100%">
-                  <PieChart>
-                    <Pie
-                      data={levelChart}
-                      dataKey="value"
-                      nameKey="name"
-                      cx="50%"
-                      cy="50%"
-                      outerRadius={80}
-                      label={({ name, value }) => `${name} ${value}`}
-                    >
-                      {levelChart.map((_, i) => (
-                        <Cell
-                          key={i}
-                          fill={PIE_COLORS[i % PIE_COLORS.length]}
-                        />
-                      ))}
-                    </Pie>
-                    <Tooltip />
-                  </PieChart>
-                </ResponsiveContainer>
-              ) : (
-                <EmptyChart />
-              )}
-            </div>
-          </div>
-        </div>
-
-        {/* Top sports */}
-        {stats && stats.bySportTop.length > 0 && (
-          <div className="card mt-5 p-5">
-            <h2 className="mb-3 font-bold text-slate-900">종목별 학생선수 TOP 10</h2>
-            <div className="h-56">
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={stats.bySportTop} layout="vertical">
-                  <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
-                  <XAxis type="number" allowDecimals={false} tick={{ fontSize: 11 }} />
-                  <YAxis
-                    type="category"
-                    dataKey="sport"
-                    width={110}
-                    tick={{ fontSize: 11 }}
-                  />
-                  <Tooltip />
-                  <Bar dataKey="athletes" name="학생선수" fill="#0ea5e9" radius={[0, 6, 6, 0]} />
-                </BarChart>
-              </ResponsiveContainer>
-            </div>
-          </div>
-        )}
-
-        {/* Regions grid */}
+        {/* Regions first */}
         <section className="mt-8">
           <h2 className="mb-4 text-lg font-bold text-slate-900">
             교육지원청별 현황 (25개)
@@ -365,23 +272,28 @@ export default function AdminPage() {
           <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
             {REGIONS.map((region) => {
               const r = stats?.byRegion.find((x) => x.region === region);
-              const count = r?.submissionCount || 0;
               return (
                 <div
                   key={region}
                   className="card group flex flex-col p-4 transition hover:border-blue-200 hover:shadow-lg"
                 >
                   <div className="flex items-start justify-between gap-2">
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-2 min-w-0">
                       <MapPin className="h-4 w-4 shrink-0 text-blue-600" />
                       <div className="text-sm font-bold text-slate-800 leading-snug">
                         {region.replace("교육지원청", "")}
                       </div>
                     </div>
-                    <span
-                      className={`badge ${count > 0 ? "badge-green" : "badge-slate"}`}
-                    >
-                      {count}교
+                  </div>
+                  <div className="mt-3 flex flex-wrap gap-1.5">
+                    <span className="badge badge-blue">
+                      초 {r?.countElementary ?? 0}
+                    </span>
+                    <span className="badge badge-green">
+                      중 {r?.countMiddle ?? 0}
+                    </span>
+                    <span className="badge badge-amber">
+                      고 {r?.countHigh ?? 0}
                     </span>
                   </div>
                   <div className="mt-2 grid grid-cols-2 gap-1 text-xs text-slate-500">
@@ -406,7 +318,7 @@ export default function AdminPage() {
                       className="btn btn-primary !py-1.5 !px-2.5 text-xs"
                       onClick={() => downloadExcel(region)}
                       disabled={exporting}
-                      title="탭4 형식 엑셀 다운로드"
+                      title="통계 엑셀 다운로드"
                     >
                       <Download className="h-3.5 w-3.5" />
                     </button>
@@ -417,40 +329,111 @@ export default function AdminPage() {
           </div>
         </section>
 
-        {/* Recent */}
-        {stats && stats.recentSubmissions.length > 0 && (
-          <section className="card mt-8 overflow-hidden">
-            <div className="border-b border-slate-100 px-5 py-4">
-              <h2 className="font-bold text-slate-900">최근 제출·수정</h2>
+        {/* Charts at bottom */}
+        <section className="mt-10 space-y-5">
+          <h2 className="text-lg font-bold text-slate-900">통계 그래프</h2>
+          <div className="grid gap-5 lg:grid-cols-3">
+            <div className="card p-5 lg:col-span-2">
+              <div className="mb-4 flex items-center gap-2">
+                <BarChart3 className="h-4 w-4 text-blue-600" />
+                <h3 className="font-bold text-slate-900">지원청별 제출 현황</h3>
+              </div>
+              <div className="h-64">
+                {regionChart.length > 0 ? (
+                  <ResponsiveContainer width="100%" height="100%">
+                    <BarChart data={regionChart}>
+                      <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
+                      <XAxis dataKey="name" tick={{ fontSize: 11 }} />
+                      <YAxis allowDecimals={false} tick={{ fontSize: 11 }} />
+                      <Tooltip
+                        contentStyle={{
+                          borderRadius: 12,
+                          border: "1px solid #e2e8f0",
+                          fontFamily: "Pretendard",
+                        }}
+                      />
+                      <Bar
+                        dataKey="count"
+                        name="제출 건수"
+                        fill="#2563eb"
+                        radius={[6, 6, 0, 0]}
+                      />
+                    </BarChart>
+                  </ResponsiveContainer>
+                ) : (
+                  <EmptyChart />
+                )}
+              </div>
             </div>
-            <div className="overflow-x-auto">
-              <table className="data-table">
-                <thead>
-                  <tr>
-                    <th>학교명</th>
-                    <th>학교급</th>
-                    <th>교육지원청</th>
-                    <th>저장 시각</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {stats.recentSubmissions.map((s) => (
-                    <tr key={s.id}>
-                      <td className="font-medium">{s.schoolName}</td>
-                      <td>
-                        <span className="badge badge-blue">{s.schoolLevel}</span>
-                      </td>
-                      <td>{s.region.replace("교육지원청", "")}</td>
-                      <td className="text-slate-500">
-                        {formatDate(s.createdAt)}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+
+            <div className="card p-5">
+              <div className="mb-4 flex items-center gap-2">
+                <TrendingUp className="h-4 w-4 text-sky-600" />
+                <h3 className="font-bold text-slate-900">학교급 분포</h3>
+              </div>
+              <div className="h-64">
+                {levelChart.some((d) => d.value > 0) ? (
+                  <ResponsiveContainer width="100%" height="100%">
+                    <PieChart>
+                      <Pie
+                        data={levelChart}
+                        dataKey="value"
+                        nameKey="name"
+                        cx="50%"
+                        cy="50%"
+                        outerRadius={80}
+                        label={({ name, value }) => `${name} ${value}`}
+                      >
+                        {levelChart.map((_, i) => (
+                          <Cell
+                            key={i}
+                            fill={PIE_COLORS[i % PIE_COLORS.length]}
+                          />
+                        ))}
+                      </Pie>
+                      <Tooltip />
+                    </PieChart>
+                  </ResponsiveContainer>
+                ) : (
+                  <EmptyChart />
+                )}
+              </div>
             </div>
-          </section>
-        )}
+          </div>
+
+          {stats && stats.bySportTop.length > 0 && (
+            <div className="card p-5">
+              <h3 className="mb-3 font-bold text-slate-900">
+                종목별 학생선수 TOP 10
+              </h3>
+              <div className="h-56">
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart data={stats.bySportTop} layout="vertical">
+                    <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
+                    <XAxis
+                      type="number"
+                      allowDecimals={false}
+                      tick={{ fontSize: 11 }}
+                    />
+                    <YAxis
+                      type="category"
+                      dataKey="sport"
+                      width={110}
+                      tick={{ fontSize: 11 }}
+                    />
+                    <Tooltip />
+                    <Bar
+                      dataKey="athletes"
+                      name="학생선수"
+                      fill="#0ea5e9"
+                      radius={[0, 6, 6, 0]}
+                    />
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
+            </div>
+          )}
+        </section>
       </main>
     </div>
   );
@@ -475,12 +458,10 @@ function Kpi({
   };
   return (
     <div className="stat-card card p-5">
-      <div className="flex items-center justify-between">
-        <div
-          className={`flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br ${map[color]} text-white shadow`}
-        >
-          {icon}
-        </div>
+      <div
+        className={`flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br ${map[color]} text-white shadow`}
+      >
+        {icon}
       </div>
       <div className="mt-3 text-2xl font-extrabold text-slate-900 tabular-nums">
         {value.toLocaleString()}

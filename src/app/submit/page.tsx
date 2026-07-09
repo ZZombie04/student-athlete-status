@@ -17,8 +17,7 @@ export default function SubmitPage() {
           </h1>
           <p className="mt-1 text-sm text-slate-500">
             교육지원청·학교급·학교명을 입력한 뒤 종목별 수치를 작성하고
-            제출해 주세요. 동일 학교명으로 이미 제출된 경우 관리자에게 문의가
-            필요합니다.
+            제출해 주세요.
           </p>
         </div>
         <SubmissionForm
