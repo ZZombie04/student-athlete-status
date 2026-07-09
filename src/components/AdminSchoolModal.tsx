@@ -332,33 +332,45 @@ export default function AdminSchoolModal({
                       <div className="grid gap-2 text-xs sm:grid-cols-3">
                         {(
                           [
-                            ["미도달", "failG"],
-                            ["이수", "completeG"],
-                            ["기초미달", "basicFailG"],
+                            [
+                              "학년별 최저학력기준 미도달 학생선수 수",
+                              "failG",
+                            ],
+                            ["기초학력프로그램 이수 학생선수 수", "completeG"],
+                            [
+                              "최저학력에 미도달한 학생선수 중 기초학력보장법에 의거한 기초학력 미달 학생선수 수",
+                              "basicFailG",
+                            ],
                           ] as const
                         ).map(([label, prefix]) => (
                           <div
                             key={prefix}
-                            className="rounded-lg border border-slate-100 p-2"
+                            className="flex min-h-[140px] flex-col rounded-xl border border-slate-200 bg-slate-50/60 p-2.5"
                           >
-                            <div className="mb-1 font-semibold">{label}</div>
-                            <div className="grid grid-cols-3 gap-1">
+                            <div className="mb-2 line-clamp-3 h-[3.2rem] text-[10px] font-bold leading-snug text-slate-700">
+                              {label}
+                            </div>
+                            <div className="mt-auto grid grid-cols-3 gap-1.5">
                               {[1, 2, 3].map((g) => {
                                 const key =
                                   `${prefix}${g}` as keyof SportEntryInput;
                                 return (
-                                  <input
-                                    key={key}
-                                    className="input !py-1 !px-1 text-center"
-                                    type="number"
-                                    min={0}
-                                    value={Number(row[key]) || 0}
-                                    onChange={(e) =>
-                                      updateSport(idx, {
-                                        [key]: num(e.target.value),
-                                      } as Partial<SportEntryInput>)
-                                    }
-                                  />
+                                  <div key={key} className="min-w-0">
+                                    <div className="mb-0.5 text-center text-[10px] font-semibold text-slate-500">
+                                      {grades[g - 1]}
+                                    </div>
+                                    <input
+                                      className="input !h-9 !px-1 !py-0 text-center text-sm tabular-nums"
+                                      type="number"
+                                      min={0}
+                                      value={Number(row[key]) || 0}
+                                      onChange={(e) =>
+                                        updateSport(idx, {
+                                          [key]: num(e.target.value),
+                                        } as Partial<SportEntryInput>)
+                                      }
+                                    />
+                                  </div>
                                 );
                               })}
                             </div>

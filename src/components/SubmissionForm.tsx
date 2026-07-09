@@ -394,8 +394,8 @@ export default function SubmissionForm({
                 </div>
               </div>
 
-              {/* 3 metric groups */}
-              <div className="mt-4 grid gap-3 md:grid-cols-1 xl:grid-cols-3">
+              {/* 3 metric groups — 동일 높이·입력칸 정렬 */}
+              <div className="mt-4 grid grid-cols-1 items-stretch gap-3 lg:grid-cols-3">
                 <MetricGroup
                   title="학년별 최저학력기준 미도달 학생선수 수"
                   grades={grades}
@@ -531,63 +531,71 @@ export default function SubmissionForm({
                       <table className="data-table text-xs sm:text-sm">
                         <thead>
                           <tr>
-                            <th className="!py-2">구분</th>
-                            <th className="!py-2 text-center">{grades[0]}</th>
-                            <th className="!py-2 text-center">{grades[1]}</th>
-                            <th className="!py-2 text-center">{grades[2]}</th>
-                            <th className="!py-2 text-center">합계</th>
+                            <th className="!py-2.5 w-[40%]">구분</th>
+                            <th className="!py-2.5 w-[12%] text-center">
+                              {grades[0]}
+                            </th>
+                            <th className="!py-2.5 w-[12%] text-center">
+                              {grades[1]}
+                            </th>
+                            <th className="!py-2.5 w-[12%] text-center">
+                              {grades[2]}
+                            </th>
+                            <th className="!py-2.5 w-[12%] text-center">
+                              합계
+                            </th>
                           </tr>
                         </thead>
                         <tbody>
                           <tr>
-                            <td className="font-medium text-amber-800">
+                            <td className="align-middle font-medium text-amber-800 leading-snug">
                               학년별 최저학력기준 미도달 학생선수 수
                             </td>
-                            <td className="text-center tabular-nums">
+                            <td className="text-center align-middle tabular-nums">
                               {s.failG1}
                             </td>
-                            <td className="text-center tabular-nums">
+                            <td className="text-center align-middle tabular-nums">
                               {s.failG2}
                             </td>
-                            <td className="text-center tabular-nums">
+                            <td className="text-center align-middle tabular-nums">
                               {s.failG3}
                             </td>
-                            <td className="text-center font-bold tabular-nums">
+                            <td className="text-center align-middle font-bold tabular-nums">
                               {s.failG1 + s.failG2 + s.failG3}
                             </td>
                           </tr>
                           <tr>
-                            <td className="font-medium text-emerald-800">
+                            <td className="align-middle font-medium text-emerald-800 leading-snug">
                               기초학력프로그램 이수 학생선수 수
                             </td>
-                            <td className="text-center tabular-nums">
+                            <td className="text-center align-middle tabular-nums">
                               {s.completeG1}
                             </td>
-                            <td className="text-center tabular-nums">
+                            <td className="text-center align-middle tabular-nums">
                               {s.completeG2}
                             </td>
-                            <td className="text-center tabular-nums">
+                            <td className="text-center align-middle tabular-nums">
                               {s.completeG3}
                             </td>
-                            <td className="text-center font-bold tabular-nums">
+                            <td className="text-center align-middle font-bold tabular-nums">
                               {s.completeG1 + s.completeG2 + s.completeG3}
                             </td>
                           </tr>
                           <tr>
-                            <td className="font-medium text-rose-800">
+                            <td className="align-middle font-medium text-rose-800 leading-snug">
                               최저학력에 미도달한 학생선수 중 기초학력보장법에
                               의거한 기초학력 미달 학생선수 수
                             </td>
-                            <td className="text-center tabular-nums">
+                            <td className="text-center align-middle tabular-nums">
                               {s.basicFailG1}
                             </td>
-                            <td className="text-center tabular-nums">
+                            <td className="text-center align-middle tabular-nums">
                               {s.basicFailG2}
                             </td>
-                            <td className="text-center tabular-nums">
+                            <td className="text-center align-middle tabular-nums">
                               {s.basicFailG3}
                             </td>
-                            <td className="text-center font-bold tabular-nums">
+                            <td className="text-center align-middle font-bold tabular-nums">
                               {s.basicFailG1 +
                                 s.basicFailG2 +
                                 s.basicFailG3}
@@ -647,40 +655,58 @@ function MetricGroup({
   onChange: (g1: number, g2: number, g3: number) => void;
   color: "amber" | "green" | "rose";
 }) {
-  const border =
-    color === "amber"
-      ? "border-amber-200 bg-amber-50/40"
-      : color === "green"
-        ? "border-emerald-200 bg-emerald-50/40"
-        : "border-rose-200 bg-rose-50/40";
-  const titleColor =
-    color === "amber"
-      ? "text-amber-900"
-      : color === "green"
-        ? "text-emerald-900"
-        : "text-rose-900";
+  const styles = {
+    amber: {
+      box: "border-amber-200 bg-amber-50/50",
+      title: "text-amber-900",
+      sum: "bg-amber-100/80 text-amber-900",
+    },
+    green: {
+      box: "border-emerald-200 bg-emerald-50/50",
+      title: "text-emerald-900",
+      sum: "bg-emerald-100/80 text-emerald-900",
+    },
+    rose: {
+      box: "border-rose-200 bg-rose-50/50",
+      title: "text-rose-900",
+      sum: "bg-rose-100/80 text-rose-900",
+    },
+  }[color];
+
   const sum = values[0] + values[1] + values[2];
 
   return (
-    <div className={`rounded-xl border p-3 ${border}`}>
-      <div className="mb-2 space-y-1">
-        <div className={`text-[11px] font-bold leading-snug ${titleColor}`}>
+    <div
+      className={`flex h-full min-h-[190px] flex-col rounded-xl border p-3.5 ${styles.box}`}
+    >
+      {/* 제목 영역: 3카드 동일 고정 높이 → 입력칸 Y축 정렬 */}
+      <div className="mb-2 flex h-[4.25rem] shrink-0 items-start overflow-hidden">
+        <div
+          className={`line-clamp-3 text-[11px] font-bold leading-[1.35] tracking-tight ${styles.title}`}
+          title={title}
+        >
           {title}
         </div>
-        <div className="text-xs text-slate-500">
-          합계 <strong className="text-slate-800">{sum}</strong>
-        </div>
       </div>
-      <div className="grid grid-cols-3 gap-2">
+
+      <div
+        className={`mb-3 inline-flex w-fit items-center rounded-md px-2 py-0.5 text-[11px] font-semibold ${styles.sum}`}
+      >
+        합계&nbsp;<span className="tabular-nums text-sm">{sum}</span>
+      </div>
+
+      {/* 입력 영역: 항상 하단 동일 라인 */}
+      <div className="mt-auto grid grid-cols-3 gap-2">
         {[0, 1, 2].map((i) => (
-          <div key={i}>
-            <label className="mb-1 block text-[11px] font-medium text-slate-500">
+          <div key={i} className="flex min-w-0 flex-col">
+            <label className="mb-1 block h-4 truncate text-center text-[11px] font-semibold text-slate-600">
               {grades[i]}
             </label>
             <input
-              className="input !px-2 !py-1.5 text-center"
+              className="input !h-10 !px-1 !py-0 text-center text-sm tabular-nums font-medium"
               type="number"
               min={0}
+              inputMode="numeric"
               value={values[i]}
               onChange={(e) => {
                 const next = [...values] as [number, number, number];
