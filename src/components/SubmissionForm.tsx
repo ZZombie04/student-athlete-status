@@ -20,6 +20,7 @@ import {
 } from "@/lib/constants";
 import { normalizeSchoolName, schoolLevelLabel } from "@/lib/school-name";
 import type { SportEntryInput, SubmissionPublic } from "@/lib/types";
+import IntInput from "@/components/IntInput";
 
 function emptySport(): SportEntryInput {
   return {
@@ -36,11 +37,6 @@ function emptySport(): SportEntryInput {
     basicFailG3: 0,
     note: "",
   };
-}
-
-function num(v: string): number {
-  const n = parseInt(v, 10);
-  return Number.isFinite(n) && n >= 0 ? n : 0;
 }
 
 interface Props {
@@ -331,14 +327,20 @@ export default function SubmissionForm({
                     종목 행
                   </span>
                 </div>
-                <button
-                  type="button"
-                  className="btn btn-danger !py-1.5 !px-2.5 text-xs"
-                  onClick={() => removeRow(idx)}
-                >
-                  <Trash2 className="h-3.5 w-3.5" />
-                  줄 삭제
-                </button>
+                {idx > 0 ? (
+                  <button
+                    type="button"
+                    className="btn btn-danger !py-1.5 !px-2.5 text-xs"
+                    onClick={() => removeRow(idx)}
+                  >
+                    <Trash2 className="h-3.5 w-3.5" />
+                    줄 삭제
+                  </button>
+                ) : (
+                  <span className="text-[11px] text-slate-400">
+                    기본 행 (삭제 불가)
+                  </span>
+                )}
               </div>
 
               <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
@@ -368,15 +370,11 @@ export default function SubmissionForm({
 
                 <div>
                   <label className="label">전체 학생선수 수</label>
-                  <input
+                  <IntInput
                     className="input"
-                    type="number"
-                    min={0}
                     value={row.totalAthletes}
-                    onChange={(e) =>
-                      updateSport(idx, {
-                        totalAthletes: num(e.target.value),
-                      })
+                    onChange={(n) =>
+                      updateSport(idx, { totalAthletes: n })
                     }
                   />
                 </div>
@@ -702,15 +700,12 @@ function MetricGroup({
             <label className="mb-1 block h-4 truncate text-center text-[11px] font-semibold text-slate-600">
               {grades[i]}
             </label>
-            <input
+            <IntInput
               className="input !h-10 !px-1 !py-0 text-center text-sm tabular-nums font-medium"
-              type="number"
-              min={0}
-              inputMode="numeric"
               value={values[i]}
-              onChange={(e) => {
+              onChange={(n) => {
                 const next = [...values] as [number, number, number];
-                next[i] = num(e.target.value);
+                next[i] = n;
                 onChange(next[0], next[1], next[2]);
               }}
             />

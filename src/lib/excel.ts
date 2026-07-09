@@ -67,7 +67,19 @@ function writeLevel(
     completeSum(data),
   ];
   vals.forEach((v, i) => {
-    ws.getCell(row, startCol + i).value = v;
+    const cell = ws.getCell(row, startCol + i);
+    cell.value = v;
+    cell.font = {
+      name: "맑은 고딕",
+      size: 10,
+      color: { argb: "FF000000" },
+      bold: false,
+    };
+    cell.alignment = {
+      vertical: "middle",
+      horizontal: "center",
+      wrapText: true,
+    };
   });
 }
 
@@ -125,17 +137,51 @@ function fillSchoolSheet(
     entry: SportEntryInput;
   }>
 ) {
-  // 샘플 데이터 영역 비우기 (B8:U50 정도) + 안내문 위치 확보
-  // 기존 샘플 8~12, 안내 14 → 데이터 후 안내 재배치
+  // 샘플(빨간 글씨) 영역 스타일·값 완전 초기화
   for (let r = 8; r <= 200; r++) {
     for (let c = 2; c <= 21; c++) {
       const cell = ws.getCell(r, c);
-      // keep nothing in data area
       cell.value = null;
+      cell.font = {
+        name: "맑은 고딕",
+        size: 11,
+        color: { argb: "FF000000" },
+        bold: false,
+        italic: false,
+      };
+      cell.alignment = {
+        vertical: "middle",
+        horizontal: "center",
+        wrapText: true,
+      };
+      cell.border = {};
+      cell.fill = {
+        type: "pattern",
+        pattern: "none",
+      };
     }
   }
 
   const regionShort = (r: string) => r.replace("교육지원청", "").trim();
+  const blackCenter = {
+    font: {
+      name: "맑은 고딕",
+      size: 11,
+      color: { argb: "FF000000" },
+      bold: false,
+    } as ExcelJS.Font,
+    alignment: {
+      vertical: "middle" as const,
+      horizontal: "center" as const,
+      wrapText: true,
+    },
+    border: {
+      top: { style: "thin" as const, color: { argb: "FFB0B0B0" } },
+      left: { style: "thin" as const, color: { argb: "FFB0B0B0" } },
+      bottom: { style: "thin" as const, color: { argb: "FFB0B0B0" } },
+      right: { style: "thin" as const, color: { argb: "FFB0B0B0" } },
+    },
+  };
 
   rows.forEach((item, idx) => {
     const r = 8 + idx;
@@ -144,45 +190,36 @@ function fillSchoolSheet(
     const completeSumV = e.completeG1 + e.completeG2 + e.completeG3;
     const basicSumV = e.basicFailG1 + e.basicFailG2 + e.basicFailG3;
 
-    ws.getCell(r, 2).value = idx + 1; // 연번
-    ws.getCell(r, 3).value = SIDO; // 시도
-    ws.getCell(r, 4).value = regionShort(item.region); // 지역청
-    ws.getCell(r, 5).value = level; // 학교급
-    ws.getCell(r, 6).value = item.schoolName;
-    ws.getCell(r, 7).value = e.sport;
-    ws.getCell(r, 8).value = e.totalAthletes;
-    // 미도달
-    ws.getCell(r, 9).value = e.failG1;
-    ws.getCell(r, 10).value = e.failG2;
-    ws.getCell(r, 11).value = e.failG3;
-    ws.getCell(r, 12).value = failSumV;
-    // 이수
-    ws.getCell(r, 13).value = e.completeG1;
-    ws.getCell(r, 14).value = e.completeG2;
-    ws.getCell(r, 15).value = e.completeG3;
-    ws.getCell(r, 16).value = completeSumV;
-    // 기초학력 미달
-    ws.getCell(r, 17).value = e.basicFailG1;
-    ws.getCell(r, 18).value = e.basicFailG2;
-    ws.getCell(r, 19).value = e.basicFailG3;
-    ws.getCell(r, 20).value = basicSumV;
-    // 비고
-    ws.getCell(r, 21).value = e.note || "";
+    const vals: Array<string | number> = [
+      idx + 1,
+      SIDO,
+      regionShort(item.region),
+      level,
+      item.schoolName,
+      e.sport,
+      e.totalAthletes,
+      e.failG1,
+      e.failG2,
+      e.failG3,
+      failSumV,
+      e.completeG1,
+      e.completeG2,
+      e.completeG3,
+      completeSumV,
+      e.basicFailG1,
+      e.basicFailG2,
+      e.basicFailG3,
+      basicSumV,
+      e.note || "",
+    ];
 
-    // light border for readability
-    for (let c = 2; c <= 21; c++) {
-      const cell = ws.getCell(r, c);
-      cell.alignment = { vertical: "middle", horizontal: "center", wrapText: true };
-      cell.border = {
-        top: { style: "thin", color: { argb: "FFB0B0B0" } },
-        left: { style: "thin", color: { argb: "FFB0B0B0" } },
-        bottom: { style: "thin", color: { argb: "FFB0B0B0" } },
-        right: { style: "thin", color: { argb: "FFB0B0B0" } },
-      };
-      if (c === 6 || c === 7 || c === 21) {
-        cell.alignment = { vertical: "middle", horizontal: "left", wrapText: true };
-      }
-    }
+    vals.forEach((v, i) => {
+      const cell = ws.getCell(r, 2 + i);
+      cell.value = v;
+      cell.font = { ...blackCenter.font };
+      cell.alignment = { ...blackCenter.alignment };
+      cell.border = { ...blackCenter.border };
+    });
   });
 
   // 안내문 (데이터 아래) — 기존 B14 병합 영역 클리어 후 재기록

@@ -11,6 +11,7 @@ import {
 import { schoolLevelLabel } from "@/lib/school-name";
 import type { SportEntryInput, SubmissionPublic } from "@/lib/types";
 import { formatDate } from "@/lib/utils";
+import IntInput from "@/components/IntInput";
 
 function emptySport(): SportEntryInput {
   return {
@@ -27,11 +28,6 @@ function emptySport(): SportEntryInput {
     basicFailG3: 0,
     note: "",
   };
-}
-
-function num(v: string) {
-  const n = parseInt(v, 10);
-  return Number.isFinite(n) && n >= 0 ? n : 0;
 }
 
 interface Props {
@@ -297,37 +293,33 @@ export default function AdminSchoolModal({
                             </option>
                           ))}
                         </select>
-                        <button
-                          type="button"
-                          className="btn btn-danger !py-1.5 text-xs"
-                          onClick={() =>
-                            setSports((p) =>
-                              p.length <= 1
-                                ? p
-                                : p.filter((_, i) => i !== idx)
-                            )
-                          }
-                        >
-                          <Trash2 className="h-3.5 w-3.5" />
-                        </button>
+                        {idx > 0 ? (
+                          <button
+                            type="button"
+                            className="btn btn-danger !py-1.5 text-xs"
+                            onClick={() =>
+                              setSports((p) =>
+                                p.length <= 1
+                                  ? p
+                                  : p.filter((_, i) => i !== idx)
+                              )
+                            }
+                          >
+                            <Trash2 className="h-3.5 w-3.5" />
+                          </button>
+                        ) : null}
                       </div>
                       <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
                         <div>
                           <label className="label">전체</label>
-                          <input
+                          <IntInput
                             className="input"
-                            type="number"
                             value={row.totalAthletes}
-                            onChange={(e) =>
-                              updateSport(idx, {
-                                totalAthletes: num(e.target.value),
-                              })
+                            onChange={(n) =>
+                              updateSport(idx, { totalAthletes: n })
                             }
                           />
                         </div>
-                        {(["fail", "complete", "basicFail"] as const).map(
-                          () => null
-                        )}
                       </div>
                       <div className="grid gap-2 text-xs sm:grid-cols-3">
                         {(
@@ -359,14 +351,12 @@ export default function AdminSchoolModal({
                                     <div className="mb-0.5 text-center text-[10px] font-semibold text-slate-500">
                                       {grades[g - 1]}
                                     </div>
-                                    <input
+                                    <IntInput
                                       className="input !h-9 !px-1 !py-0 text-center text-sm tabular-nums"
-                                      type="number"
-                                      min={0}
                                       value={Number(row[key]) || 0}
-                                      onChange={(e) =>
+                                      onChange={(n) =>
                                         updateSport(idx, {
-                                          [key]: num(e.target.value),
+                                          [key]: n,
                                         } as Partial<SportEntryInput>)
                                       }
                                     />
