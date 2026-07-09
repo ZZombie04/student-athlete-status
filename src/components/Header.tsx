@@ -16,8 +16,8 @@ export default function Header() {
           <Image
             src="/logo.png"
             alt="경기교육 대전환"
-            width={120}
-            height={40}
+            width={286}
+            height={108}
             className="h-8 w-auto sm:h-9 object-contain"
             priority
           />
