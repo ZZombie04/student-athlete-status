@@ -71,7 +71,8 @@ export default function SubmissionForm({
   const [submitting, setSubmitting] = useState(false);
 
   const grades = useMemo(() => {
-    if (!schoolLevel) return ["학년1", "학년2", "학년3"] as [string, string, string];
+    // 학교급 미선택 시에도 숫자+학년 표기 (엑셀 서식과 동일)
+    if (!schoolLevel) return ["1학년", "2학년", "3학년"] as [string, string, string];
     return GRADE_LABELS[schoolLevel];
   }, [schoolLevel]);
 
