@@ -212,7 +212,9 @@ export default function AdminSchoolModal({
                           </thead>
                           <tbody>
                             <tr>
-                              <td>미도달</td>
+                              <td className="max-w-[12rem]">
+                                학년별 최저학력기준 미도달 학생선수 수
+                              </td>
                               <td className="text-center">{s.failG1}</td>
                               <td className="text-center">{s.failG2}</td>
                               <td className="text-center">{s.failG3}</td>
@@ -221,7 +223,9 @@ export default function AdminSchoolModal({
                               </td>
                             </tr>
                             <tr>
-                              <td>이수</td>
+                              <td className="max-w-[12rem]">
+                                기초학력프로그램 이수 학생선수 수
+                              </td>
                               <td className="text-center">{s.completeG1}</td>
                               <td className="text-center">{s.completeG2}</td>
                               <td className="text-center">{s.completeG3}</td>
@@ -230,7 +234,10 @@ export default function AdminSchoolModal({
                               </td>
                             </tr>
                             <tr>
-                              <td>기초미달</td>
+                              <td className="max-w-[12rem]">
+                                최저학력에 미도달한 학생선수 중 기초학력보장법에
+                                의거한 기초학력 미달 학생선수 수
+                              </td>
                               <td className="text-center">{s.basicFailG1}</td>
                               <td className="text-center">{s.basicFailG2}</td>
                               <td className="text-center">{s.basicFailG3}</td>

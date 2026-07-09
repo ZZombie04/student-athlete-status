@@ -1,5 +1,4 @@
 import Link from "next/link";
-import Image from "next/image";
 import Header from "@/components/Header";
 import { FilePlus2, Search, Shield } from "lucide-react";
 
@@ -14,17 +13,6 @@ export default function HomePage() {
           <div className="absolute -bottom-16 left-10 h-40 w-40 rounded-full bg-sky-100/70 blur-3xl" />
 
           <div className="relative">
-            <div className="mb-6">
-              <Image
-                src="/logo.png"
-                alt="경기교육 대전환 크게 제대로!"
-                width={280}
-                height={90}
-                className="h-14 w-auto sm:h-16 object-contain"
-                priority
-              />
-            </div>
-
             <p className="text-sm font-semibold text-blue-700">
               2026학년도 1학기
             </p>

@@ -1,10 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import { REGIONS } from "@/lib/constants";
-import { aggregateForExport } from "@/lib/db";
 import {
-  exportAllRegionsExcelV2,
-  exportRegionExcel,
-} from "@/lib/excel";
+  getAllSubmissions,
+  getSubmissionsByRegion,
+} from "@/lib/db";
+import { exportFullFormWorkbook } from "@/lib/excel";
 
 function checkAdmin(req: NextRequest): boolean {
   const auth = req.headers.get("x-admin-token");
@@ -32,11 +32,14 @@ export async function GET(req: NextRequest) {
           { status: 400 }
         );
       }
-      const agg = await aggregateForExport(region);
-      const buffer = await exportRegionExcel(region, agg);
+      const submissions = await getSubmissionsByRegion(region);
+      const buffer = await exportFullFormWorkbook(submissions, {
+        region,
+        titleSuffix: region,
+      });
       const short = region.replace("교육지원청", "");
       const filename = encodeURIComponent(
-        `2026_1학기_학생선수_기초학력프로그램_이수현황_${short}통계.xlsx`
+        `2026_1학기_학생선수_기초학력프로그램_이수현황_${short}.xlsx`
       );
       return new NextResponse(new Uint8Array(buffer), {
         headers: {
@@ -47,13 +50,11 @@ export async function GET(req: NextRequest) {
       });
     }
 
-    // All regions combined
-    const regionAggs = [];
-    for (const r of REGIONS) {
-      const agg = await aggregateForExport(r);
-      regionAggs.push({ region: r, agg });
-    }
-    const buffer = await exportAllRegionsExcelV2(regionAggs);
+    // 경기도 전체: 초·중·고·통계 4탭 누적 취합
+    const submissions = await getAllSubmissions();
+    const buffer = await exportFullFormWorkbook(submissions, {
+      titleSuffix: "경기도 전체",
+    });
     const filename = encodeURIComponent(
       `2026_1학기_학생선수_기초학력프로그램_이수현황_경기도전체취합.xlsx`
     );

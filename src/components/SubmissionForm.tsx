@@ -394,9 +394,9 @@ export default function SubmissionForm({
               </div>
 
               {/* 3 metric groups */}
-              <div className="mt-4 grid gap-3 lg:grid-cols-3">
+              <div className="mt-4 grid gap-3 md:grid-cols-1 xl:grid-cols-3">
                 <MetricGroup
-                  title="최저학력기준 미도달"
+                  title="학년별 최저학력기준 미도달 학생선수 수"
                   grades={grades}
                   values={[row.failG1, row.failG2, row.failG3]}
                   onChange={(g1, g2, g3) =>
@@ -409,7 +409,7 @@ export default function SubmissionForm({
                   color="amber"
                 />
                 <MetricGroup
-                  title="기초학력프로그램 이수"
+                  title="기초학력프로그램 이수 학생선수 수"
                   grades={grades}
                   values={[row.completeG1, row.completeG2, row.completeG3]}
                   onChange={(g1, g2, g3) =>
@@ -422,7 +422,7 @@ export default function SubmissionForm({
                   color="green"
                 />
                 <MetricGroup
-                  title="기초학력 미달 (보장법)"
+                  title="최저학력에 미도달한 학생선수 중 기초학력보장법에 의거한 기초학력 미달 학생선수 수"
                   grades={grades}
                   values={[
                     row.basicFailG1,
@@ -540,7 +540,7 @@ export default function SubmissionForm({
                         <tbody>
                           <tr>
                             <td className="font-medium text-amber-800">
-                              최저학력기준 미도달
+                              학년별 최저학력기준 미도달 학생선수 수
                             </td>
                             <td className="text-center tabular-nums">
                               {s.failG1}
@@ -557,7 +557,7 @@ export default function SubmissionForm({
                           </tr>
                           <tr>
                             <td className="font-medium text-emerald-800">
-                              기초학력프로그램 이수
+                              기초학력프로그램 이수 학생선수 수
                             </td>
                             <td className="text-center tabular-nums">
                               {s.completeG1}
@@ -574,7 +574,8 @@ export default function SubmissionForm({
                           </tr>
                           <tr>
                             <td className="font-medium text-rose-800">
-                              기초학력 미달 (보장법)
+                              최저학력에 미도달한 학생선수 중 기초학력보장법에
+                              의거한 기초학력 미달 학생선수 수
                             </td>
                             <td className="text-center tabular-nums">
                               {s.basicFailG1}
@@ -653,16 +654,18 @@ function MetricGroup({
         : "border-rose-200 bg-rose-50/40";
   const titleColor =
     color === "amber"
-      ? "text-amber-800"
+      ? "text-amber-900"
       : color === "green"
-        ? "text-emerald-800"
-        : "text-rose-800";
+        ? "text-emerald-900"
+        : "text-rose-900";
   const sum = values[0] + values[1] + values[2];
 
   return (
     <div className={`rounded-xl border p-3 ${border}`}>
-      <div className="mb-2 flex items-center justify-between">
-        <div className={`text-xs font-bold ${titleColor}`}>{title}</div>
+      <div className="mb-2 space-y-1">
+        <div className={`text-[11px] font-bold leading-snug ${titleColor}`}>
+          {title}
+        </div>
         <div className="text-xs text-slate-500">
           합계 <strong className="text-slate-800">{sum}</strong>
         </div>
