@@ -1,9 +1,11 @@
 [phases.setup]
 nixPkgs = ["nodejs_22", "npm-9_x"]
 
+# 의존성 설치는 여기서 한 번만
 [phases.install]
 cmds = ["npm ci --include=dev"]
 
+# 빌드는 설치 없이 next build만
 [phases.build]
 cmds = ["npm run build"]
 

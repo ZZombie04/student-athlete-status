@@ -1,6 +1,7 @@
+# Railway: Nixpacks 기본 단계만 사용 (nixpacks.toml 참조)
+# buildCommand에 npm ci를 넣지 마세요 — install 단계에서 이미 설치됨
 [build]
 builder = "NIXPACKS"
-buildCommand = "npm run build"
 
 [deploy]
 startCommand = "npm run start"
