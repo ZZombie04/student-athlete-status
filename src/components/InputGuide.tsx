@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { BookOpen, ChevronDown, Info } from "lucide-react";
+import { BookOpen, ChevronDown } from "lucide-react";
 
 export default function InputGuide() {
   const [open, setOpen] = useState(false);
@@ -71,15 +71,6 @@ export default function InputGuide() {
               "예시) 4과목 미도달 중 3과목 이수·1과목 미이수 → 기초학력프로그램 미이수",
             ]}
           />
-
-          <div className="flex items-start gap-2 rounded-xl bg-slate-50 px-3.5 py-3 text-xs leading-relaxed text-slate-600">
-            <Info className="mt-0.5 h-3.5 w-3.5 shrink-0 text-blue-600" />
-            <p>
-              종목별 현황의 세 가지 입력 항목 제목(
-              <strong className="text-slate-800">미도달 · 이수 · 기초학력 미달</strong>
-              )에 커서를 올리면 항목별 입력 방법이 표시됩니다.
-            </p>
-          </div>
         </div>
       )}
     </section>
