@@ -220,6 +220,22 @@ body {
   to { opacity: 1; transform: translateY(0) scale(1); }
 }
 
+/* 메인 히어로 우측 하단 장식 — 위·왼쪽만 부드럽게 배경과 블렌드 */
+.hero-deco {
+  -webkit-mask-image:
+    linear-gradient(to right, transparent 0%, black 22%, black 100%),
+    linear-gradient(to bottom, transparent 0%, black 18%, black 100%);
+  mask-image:
+    linear-gradient(to right, transparent 0%, black 22%, black 100%),
+    linear-gradient(to bottom, transparent 0%, black 18%, black 100%);
+  -webkit-mask-composite: source-in;
+  mask-composite: intersect;
+  -webkit-mask-size: 100% 100%;
+  mask-size: 100% 100%;
+  -webkit-mask-repeat: no-repeat;
+  mask-repeat: no-repeat;
+}
+
 /* 지표 제목 호버 툴팁 */
 .metric-tip {
   position: relative;

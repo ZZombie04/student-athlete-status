@@ -9,35 +9,31 @@ export default function HomePage() {
       <Header />
 
       <main className="mx-auto w-full max-w-6xl flex-1 px-4 py-10 sm:px-6 sm:py-14">
-        <section className="relative overflow-hidden rounded-3xl border border-slate-200/80 bg-white px-6 py-12 shadow-xl shadow-slate-200/50 sm:px-12 sm:py-16 min-h-[320px] sm:min-h-[360px]">
-          {/* soft ambient blobs */}
-          <div className="pointer-events-none absolute -right-10 -top-10 h-48 w-48 rounded-full bg-blue-100/50 blur-3xl" />
-          <div className="pointer-events-none absolute -bottom-16 left-10 h-40 w-40 rounded-full bg-sky-100/60 blur-3xl" />
+        <section className="relative min-h-[340px] overflow-hidden rounded-3xl border border-slate-200/90 bg-gradient-to-br from-white via-slate-50/80 to-sky-50/40 px-6 py-12 shadow-xl shadow-slate-200/40 sm:min-h-[380px] sm:px-12 sm:py-16">
+          {/* ambient */}
+          <div className="pointer-events-none absolute -left-8 top-0 h-40 w-40 rounded-full bg-blue-100/40 blur-3xl" />
+          <div className="pointer-events-none absolute bottom-0 right-1/3 h-32 w-32 rounded-full bg-sky-100/30 blur-3xl" />
 
-          {/* 우측 하단 장식 이미지 — 위·왼쪽 페이드 처리됨 */}
+          {/* 우측 하단 장식 사진 — 가시성 확보 + 가장자리만 소프트 블렌드 */}
           <div
-            className="pointer-events-none absolute bottom-0 right-0 z-0 h-[78%] w-[min(52%,420px)] select-none sm:h-[88%] sm:w-[min(48%,480px)]"
+            className="hero-deco pointer-events-none absolute bottom-0 right-0 z-[1] h-[220px] w-[min(58%,340px)] sm:h-[280px] sm:w-[min(50%,420px)] md:h-[300px] md:w-[460px]"
             aria-hidden
           >
             <Image
               src="/hero-deco.png"
               alt=""
-              fill
-              className="object-contain object-right-bottom opacity-90"
-              sizes="(max-width: 768px) 50vw, 420px"
+              width={800}
+              height={533}
+              className="h-full w-full object-contain object-right-bottom drop-shadow-sm"
               priority
             />
-            {/* 추가 블렌드: 위·왼쪽 방향으로 배경과 자연스럽게 */}
-            <div className="absolute inset-0 bg-gradient-to-br from-white via-white/40 to-transparent" />
-            <div className="absolute inset-0 bg-gradient-to-t from-transparent via-transparent to-white/70" />
-            <div className="absolute inset-0 bg-gradient-to-r from-white/80 via-white/20 to-transparent" />
           </div>
 
-          <div className="relative z-10 max-w-xl">
+          <div className="relative z-10 max-w-lg pr-2 sm:pr-8">
             <p className="text-sm font-semibold text-blue-700">
               2026학년도 1학기
             </p>
-            <h1 className="mt-2 text-3xl font-extrabold tracking-tight text-slate-900 sm:text-4xl leading-tight">
+            <h1 className="mt-2 text-3xl font-extrabold leading-tight tracking-tight text-slate-900 sm:text-4xl">
               학생선수 최저학력 기준
               <br />
               기초학력프로그램 이수 현황
@@ -56,7 +52,7 @@ export default function HomePage() {
               </Link>
               <Link
                 href="/view"
-                className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white/90 px-5 py-3 text-sm font-bold text-slate-700 backdrop-blur-sm transition hover:bg-slate-50"
+                className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-5 py-3 text-sm font-bold text-slate-700 shadow-sm transition hover:bg-slate-50"
               >
                 <Search className="h-4 w-4" />
                 입력 내용 확인하기
