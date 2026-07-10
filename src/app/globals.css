@@ -220,6 +220,69 @@ body {
   to { opacity: 1; transform: translateY(0) scale(1); }
 }
 
+/* 지표 제목 호버 툴팁 */
+.metric-tip {
+  position: relative;
+  display: inline;
+  cursor: help;
+}
+.metric-tip-panel {
+  position: absolute;
+  left: 0;
+  top: calc(100% + 8px);
+  z-index: 40;
+  width: min(20rem, 85vw);
+  padding: 0.85rem 1rem;
+  border-radius: 12px;
+  background: #0f172a;
+  color: #f8fafc;
+  font-size: 11px;
+  font-weight: 500;
+  line-height: 1.55;
+  box-shadow: 0 16px 40px -12px rgb(15 23 42 / 0.45);
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  transform: translateY(4px);
+  transition: opacity 0.15s ease, transform 0.15s ease, visibility 0.15s;
+}
+.metric-tip-panel::before {
+  content: "";
+  position: absolute;
+  left: 1rem;
+  top: -5px;
+  width: 10px;
+  height: 10px;
+  background: #0f172a;
+  transform: rotate(45deg);
+}
+.metric-tip:hover .metric-tip-panel,
+.metric-tip:focus-within .metric-tip-panel {
+  opacity: 1;
+  visibility: visible;
+  transform: translateY(0);
+}
+.metric-tip-panel strong {
+  display: block;
+  margin-bottom: 0.4rem;
+  font-size: 12px;
+  color: #fff;
+}
+.metric-tip-panel li {
+  margin-top: 0.35rem;
+  padding-left: 0.15rem;
+  color: #e2e8f0;
+}
+/* 오른쪽 카드는 툴팁이 화면 밖으로 나가지 않도록 */
+.metric-tip-panel.align-right {
+  left: auto;
+  right: 0;
+}
+.metric-tip-panel.align-right::before {
+  left: auto;
+  right: 1rem;
+}
+
 /* Number input hide arrows for cleaner look (optional keep for usability) */
 input[type="number"] {
   -moz-appearance: textfield;

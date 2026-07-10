@@ -10,6 +10,7 @@ import {
   X,
   CheckCircle2,
   AlertCircle,
+  HelpCircle,
 } from "lucide-react";
 import {
   REGIONS,
@@ -21,6 +22,7 @@ import {
 import { normalizeSchoolName, schoolLevelLabel } from "@/lib/school-name";
 import type { SportEntryInput, SubmissionPublic } from "@/lib/types";
 import IntInput from "@/components/IntInput";
+import InputGuide, { METRIC_TOOLTIPS } from "@/components/InputGuide";
 import { downloadSchoolExcel } from "@/lib/download-school-excel";
 
 function emptySport(): SportEntryInput {
@@ -227,6 +229,8 @@ export default function SubmissionForm({
 
   return (
     <div className="space-y-6">
+      {mode === "create" && <InputGuide />}
+
       {/* Step 1: Meta */}
       <section className="card p-5 sm:p-6">
         <div className="mb-4 flex items-center gap-2">
@@ -420,6 +424,8 @@ export default function SubmissionForm({
               <div className="mt-4 grid grid-cols-1 items-stretch gap-3 lg:grid-cols-3">
                 <MetricGroup
                   title="학년별 최저학력기준 미도달 학생선수 수"
+                  tooltip={METRIC_TOOLTIPS.fail}
+                  tipAlign="left"
                   grades={grades}
                   values={[row.failG1, row.failG2, row.failG3]}
                   onChange={(g1, g2, g3) =>
@@ -433,6 +439,8 @@ export default function SubmissionForm({
                 />
                 <MetricGroup
                   title="기초학력프로그램 이수 학생선수 수"
+                  tooltip={METRIC_TOOLTIPS.complete}
+                  tipAlign="center"
                   grades={grades}
                   values={[row.completeG1, row.completeG2, row.completeG3]}
                   onChange={(g1, g2, g3) =>
@@ -446,6 +454,8 @@ export default function SubmissionForm({
                 />
                 <MetricGroup
                   title="최저학력에 미도달한 학생선수 중 기초학력보장법에 의거한 기초학력 미달 학생선수 수"
+                  tooltip={METRIC_TOOLTIPS.basicFail}
+                  tipAlign="right"
                   grades={grades}
                   values={[
                     row.basicFailG1,
@@ -666,12 +676,16 @@ function Info({ label, value }: { label: string; value: string }) {
 
 function MetricGroup({
   title,
+  tooltip,
+  tipAlign = "left",
   grades,
   values,
   onChange,
   color,
 }: {
   title: string;
+  tooltip: { title: string; lines: readonly string[] };
+  tipAlign?: "left" | "center" | "right";
   grades: [string, string, string];
   values: [number, number, number] | number[];
   onChange: (g1: number, g2: number, g3: number) => void;
@@ -699,15 +713,31 @@ function MetricGroup({
 
   return (
     <div
-      className={`flex h-full min-h-[190px] flex-col rounded-xl border p-3.5 ${styles.box}`}
+      className={`relative flex h-full min-h-[190px] flex-col overflow-visible rounded-xl border p-3.5 ${styles.box}`}
     >
-      {/* 제목 영역: 3카드 동일 고정 높이 → 입력칸 Y축 정렬 */}
-      <div className="mb-2 flex h-[4.25rem] shrink-0 items-start overflow-hidden">
-        <div
-          className={`line-clamp-3 text-[11px] font-bold leading-[1.35] tracking-tight ${styles.title}`}
-          title={title}
-        >
-          {title}
+      {/* 제목 + 호버 툴팁 */}
+      <div className="mb-2 flex h-[4.25rem] shrink-0 items-start">
+        <div className="metric-tip w-full">
+          <div
+            className={`line-clamp-3 text-[11px] font-bold leading-[1.35] tracking-tight underline decoration-dotted decoration-slate-400/80 underline-offset-2 ${styles.title}`}
+            tabIndex={0}
+          >
+            <span className="inline-flex items-start gap-1">
+              {title}
+              <HelpCircle className="mt-0.5 h-3 w-3 shrink-0 opacity-60" />
+            </span>
+          </div>
+          <div
+            className={`metric-tip-panel ${tipAlign === "right" ? "align-right" : ""} ${tipAlign === "center" ? "!left-1/2 !-translate-x-1/2" : ""}`}
+            role="tooltip"
+          >
+            <strong>{tooltip.title}</strong>
+            <ul className="list-none p-0 m-0">
+              {tooltip.lines.map((line, i) => (
+                <li key={i}>· {line}</li>
+              ))}
+            </ul>
+          </div>
         </div>
       </div>
 
@@ -717,7 +747,6 @@ function MetricGroup({
         합계&nbsp;<span className="tabular-nums text-sm">{sum}</span>
       </div>
 
-      {/* 입력 영역: 항상 하단 동일 라인 */}
       <div className="mt-auto grid grid-cols-3 gap-2">
         {[0, 1, 2].map((i) => (
           <div key={i} className="flex min-w-0 flex-col">

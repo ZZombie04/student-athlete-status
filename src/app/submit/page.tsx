@@ -16,8 +16,9 @@ export default function SubmitPage() {
             신규 현황 제출
           </h1>
           <p className="mt-1 text-sm text-slate-500">
-            교육지원청·학교급·학교명을 입력한 뒤 종목별 수치를 작성하고
-            제출해 주세요.
+            작성 안내를 확인한 뒤 교육지원청·학교급·학교명과 종목별 현황을
+            입력해 주세요. 각 항목 제목에 마우스를 올리면 입력 방법이
+            표시됩니다.
           </p>
         </div>
         <SubmissionForm
