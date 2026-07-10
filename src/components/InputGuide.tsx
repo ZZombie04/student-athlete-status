@@ -4,7 +4,7 @@ import { useState } from "react";
 import { BookOpen, ChevronDown, Info } from "lucide-react";
 
 export default function InputGuide() {
-  const [open, setOpen] = useState(true);
+  const [open, setOpen] = useState(false);
 
   return (
     <section className="card overflow-hidden border-blue-100/80">
@@ -22,8 +22,7 @@ export default function InputGuide() {
               작성 안내 · 입력 가이드
             </div>
             <div className="text-xs text-slate-500">
-              입력 전 꼭 확인해 주세요. 아래 3개 항목 제목에 마우스를 올리면
-              상세 설명이 표시됩니다.
+              입력 전 작성 안내 및 입력가이드를 반드시 확인해 주세요.
             </div>
           </div>
         </div>
@@ -76,9 +75,9 @@ export default function InputGuide() {
           <div className="flex items-start gap-2 rounded-xl bg-slate-50 px-3.5 py-3 text-xs leading-relaxed text-slate-600">
             <Info className="mt-0.5 h-3.5 w-3.5 shrink-0 text-blue-600" />
             <p>
-              종목별 현황의{" "}
-              <strong className="text-slate-800">세 가지 입력 항목 제목</strong>
-              에 마우스를 올리면, 항목별 입력 방법이 툴팁으로 표시됩니다.
+              종목별 현황의 세 가지 입력 항목 제목(
+              <strong className="text-slate-800">미도달 · 이수 · 기초학력 미달</strong>
+              )에 커서를 올리면 항목별 입력 방법이 표시됩니다.
             </p>
           </div>
         </div>

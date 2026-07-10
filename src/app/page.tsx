@@ -1,4 +1,5 @@
 import Link from "next/link";
+import Image from "next/image";
 import Header from "@/components/Header";
 import { FilePlus2, Search, Shield } from "lucide-react";
 
@@ -8,11 +9,31 @@ export default function HomePage() {
       <Header />
 
       <main className="mx-auto w-full max-w-6xl flex-1 px-4 py-10 sm:px-6 sm:py-14">
-        <section className="relative overflow-hidden rounded-3xl border border-slate-200/80 bg-white px-6 py-12 shadow-xl shadow-slate-200/50 sm:px-12 sm:py-16">
-          <div className="absolute -right-10 -top-10 h-48 w-48 rounded-full bg-blue-100/60 blur-3xl" />
-          <div className="absolute -bottom-16 left-10 h-40 w-40 rounded-full bg-sky-100/70 blur-3xl" />
+        <section className="relative overflow-hidden rounded-3xl border border-slate-200/80 bg-white px-6 py-12 shadow-xl shadow-slate-200/50 sm:px-12 sm:py-16 min-h-[320px] sm:min-h-[360px]">
+          {/* soft ambient blobs */}
+          <div className="pointer-events-none absolute -right-10 -top-10 h-48 w-48 rounded-full bg-blue-100/50 blur-3xl" />
+          <div className="pointer-events-none absolute -bottom-16 left-10 h-40 w-40 rounded-full bg-sky-100/60 blur-3xl" />
 
-          <div className="relative">
+          {/* 우측 하단 장식 이미지 — 위·왼쪽 페이드 처리됨 */}
+          <div
+            className="pointer-events-none absolute bottom-0 right-0 z-0 h-[78%] w-[min(52%,420px)] select-none sm:h-[88%] sm:w-[min(48%,480px)]"
+            aria-hidden
+          >
+            <Image
+              src="/hero-deco.png"
+              alt=""
+              fill
+              className="object-contain object-right-bottom opacity-90"
+              sizes="(max-width: 768px) 50vw, 420px"
+              priority
+            />
+            {/* 추가 블렌드: 위·왼쪽 방향으로 배경과 자연스럽게 */}
+            <div className="absolute inset-0 bg-gradient-to-br from-white via-white/40 to-transparent" />
+            <div className="absolute inset-0 bg-gradient-to-t from-transparent via-transparent to-white/70" />
+            <div className="absolute inset-0 bg-gradient-to-r from-white/80 via-white/20 to-transparent" />
+          </div>
+
+          <div className="relative z-10 max-w-xl">
             <p className="text-sm font-semibold text-blue-700">
               2026학년도 1학기
             </p>
@@ -21,7 +42,7 @@ export default function HomePage() {
               <br />
               기초학력프로그램 이수 현황
             </h1>
-            <p className="mt-4 max-w-xl text-sm text-slate-500 sm:text-base">
+            <p className="mt-4 max-w-md text-sm text-slate-500 sm:text-base">
               학교운동부 및 학생선수 운영교 데이터 취합 시스템
             </p>
 
@@ -35,7 +56,7 @@ export default function HomePage() {
               </Link>
               <Link
                 href="/view"
-                className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-5 py-3 text-sm font-bold text-slate-700 transition hover:bg-slate-50"
+                className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white/90 px-5 py-3 text-sm font-bold text-slate-700 backdrop-blur-sm transition hover:bg-slate-50"
               >
                 <Search className="h-4 w-4" />
                 입력 내용 확인하기
@@ -85,7 +106,7 @@ function HomeCard({
       href={href}
       className="card group block p-5 transition hover:-translate-y-0.5 hover:border-blue-200 hover:shadow-lg"
     >
-      <div className="mb-3 flex h-10 w-10 items-center justify-center rounded-xl bg-blue-50 text-blue-700 group-hover:bg-blue-600 group-hover:text-white transition">
+      <div className="mb-3 flex h-10 w-10 items-center justify-center rounded-xl bg-blue-50 text-blue-700 transition group-hover:bg-blue-600 group-hover:text-white">
         {icon}
       </div>
       <h3 className="font-bold text-slate-900">{title}</h3>
