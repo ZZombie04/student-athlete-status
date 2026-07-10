@@ -94,7 +94,17 @@ export default function RegionDetailPage({
       const a = document.createElement("a");
       const href = URL.createObjectURL(blob);
       a.href = href;
-      a.download = `2026_1학기_학생선수_기초학력_${region.replace("교육지원청", "")}통계.xlsx`;
+      const cd = res.headers.get("Content-Disposition") || "";
+      const m = cd.match(/filename\*=UTF-8''([^;]+)/i);
+      let filename = `2026년 1학기 학생선수 최저학력 기준 기초학력프로그램 이수 현황(${region}).xlsx`;
+      if (m?.[1]) {
+        try {
+          filename = decodeURIComponent(m[1]);
+        } catch {
+          /* keep fallback */
+        }
+      }
+      a.download = filename;
       a.click();
       URL.revokeObjectURL(href);
       toast.success("엑셀 다운로드가 시작되었습니다.");

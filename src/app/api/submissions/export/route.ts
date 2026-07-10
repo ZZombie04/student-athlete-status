@@ -101,22 +101,18 @@ export async function POST(req: NextRequest) {
 
     // 본인 제출 1건만 엑셀 생성
     const buffer = await exportSchoolWorkbook(sub);
-    const levelLabel =
-      sub.schoolLevel === "초"
-        ? "초"
-        : sub.schoolLevel === "중"
-          ? "중"
-          : "고";
-    const filename = encodeURIComponent(
-      `2026_학생선수_기초학력_${sub.schoolName}_${levelLabel}.xlsx`
-    );
+    const {
+      excelFilenameForSchool,
+      contentDispositionAttachment,
+    } = await import("@/lib/excel-filename");
+    const filename = excelFilenameForSchool(sub.schoolName);
 
     const res = new NextResponse(new Uint8Array(buffer), {
       status: 200,
       headers: {
         "Content-Type":
           "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-        "Content-Disposition": `attachment; filename*=UTF-8''${filename}`,
+        "Content-Disposition": contentDispositionAttachment(filename),
         "X-Content-Type-Options": "nosniff",
         "Cache-Control": "no-store",
       },

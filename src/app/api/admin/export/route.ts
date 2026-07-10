@@ -11,6 +11,11 @@ import {
   safeError,
   enforceRateLimit,
 } from "@/lib/security";
+import {
+  contentDispositionAttachment,
+  excelFilenameForProvince,
+  excelFilenameForRegion,
+} from "@/lib/excel-filename";
 
 export async function GET(req: NextRequest) {
   const limited = enforceRateLimit(req, "admin-export", 20, 60_000);
@@ -34,16 +39,13 @@ export async function GET(req: NextRequest) {
         region,
         titleSuffix: region,
       });
-      const short = region.replace("교육지원청", "");
-      const filename = encodeURIComponent(
-        `2026_1학기_학생선수_기초학력프로그램_이수현황_${short}.xlsx`
-      );
+      const filename = excelFilenameForRegion(region);
       return withSecurityHeaders(
         new NextResponse(new Uint8Array(buffer), {
           headers: {
             "Content-Type":
               "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-            "Content-Disposition": `attachment; filename*=UTF-8''${filename}`,
+            "Content-Disposition": contentDispositionAttachment(filename),
           },
         })
       );
@@ -53,15 +55,13 @@ export async function GET(req: NextRequest) {
     const buffer = await exportFullFormWorkbook(submissions, {
       titleSuffix: "경기도 전체",
     });
-    const filename = encodeURIComponent(
-      `2026_1학기_학생선수_기초학력프로그램_이수현황_경기도전체취합.xlsx`
-    );
+    const filename = excelFilenameForProvince();
     return withSecurityHeaders(
       new NextResponse(new Uint8Array(buffer), {
         headers: {
           "Content-Type":
             "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-          "Content-Disposition": `attachment; filename*=UTF-8''${filename}`,
+          "Content-Disposition": contentDispositionAttachment(filename),
         },
       })
     );

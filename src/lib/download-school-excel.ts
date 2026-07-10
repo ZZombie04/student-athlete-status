@@ -1,3 +1,8 @@
+import {
+  excelFilenameForSchool,
+  parseFilenameFromContentDisposition,
+} from "@/lib/excel-filename";
+
 /** 클라이언트: 본인 학교 엑셀 다운로드 (비밀번호 인증 필수) */
 
 export async function downloadSchoolExcel(params: {
@@ -24,16 +29,11 @@ export async function downloadSchoolExcel(params: {
     }
 
     const blob = await res.blob();
-    const cd = res.headers.get("Content-Disposition") || "";
-    let filename = `${params.schoolName || "학교"}_기초학력현황.xlsx`;
-    const m = cd.match(/filename\*=UTF-8''([^;]+)/i);
-    if (m?.[1]) {
-      try {
-        filename = decodeURIComponent(m[1]);
-      } catch {
-        /* keep default */
-      }
-    }
+    const fallback = excelFilenameForSchool(params.schoolName || "학교");
+    const filename = parseFilenameFromContentDisposition(
+      res.headers.get("Content-Disposition"),
+      fallback
+    );
 
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
