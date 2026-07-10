@@ -22,7 +22,7 @@ export default function HomePage() {
               기초학력프로그램 이수 현황
             </h1>
             <p className="mt-4 max-w-xl text-sm text-slate-500 sm:text-base">
-              경기도교육청 학교 제출 · 교육지원청 취합 시스템
+              학교운동부 및 학생선수 운영교 데이터 취합 시스템
             </p>
 
             <div className="mt-8 flex flex-wrap gap-3">
