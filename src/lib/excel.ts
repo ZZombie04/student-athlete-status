@@ -6,8 +6,20 @@ import type { SubmissionRecord, SportEntryInput } from "./types";
 import type { SchoolLevel } from "./constants";
 
 /**
- * 원본 서식(초/중/고/통계 4탭)을 유지한 채 제출 데이터를 누적 반영한 엑셀 생성
+ * 원본 서식 기반 엑셀 생성
+ *
+ * 주의 (과거 버그):
+ * - 초·중·고 시트 B14:U14 안내 병합이 7번째 종목 행과 겹쳐 종목 누락 발생
+ * → 데이터 영역(8행~) 병합은 쓰기 전에 반드시 전부 해제
+ * - 통계 시트 데이터는 9행~ (헤더 병합이 6~8행까지)
  */
+
+/** 학교 시트: 데이터 시작 행 (1-based) */
+const SCHOOL_DATA_START = 8;
+/** 통계 시트: 종목 데이터 시작 행 */
+const STATS_DATA_START = 9;
+/** 통계 시트: 합계 행 = 시작 + 종목수 */
+const STATS_TOTAL_ROW = STATS_DATA_START + SPORTS.length; // 9+55=64
 
 function failSum(a: SportAgg) {
   return a.failG1 + a.failG2 + a.failG3;
@@ -49,6 +61,80 @@ async function loadTemplate(): Promise<ExcelJS.Workbook> {
   return wb;
 }
 
+function colToNum(col: string): number {
+  let n = 0;
+  for (const ch of col.toUpperCase()) {
+    n = n * 26 + (ch.charCodeAt(0) - 64);
+  }
+  return n;
+}
+
+/**
+ * 워크시트에서 fromRow 이상과 겹치는 모든 병합 셀을 해제.
+ * ExcelJS 버전별 merges 저장 방식 차이를 모두 커버.
+ */
+function unmergeOverlappingRows(ws: ExcelJS.Worksheet, fromRow: number) {
+  const ranges = new Set<string>();
+
+  const model = (ws as unknown as { model?: { merges?: string[] } }).model;
+  for (const m of model?.merges || []) ranges.add(String(m));
+
+  const internal = (
+    ws as unknown as {
+      _merges?: Map<string, unknown> | Record<string, unknown>;
+    }
+  )._merges;
+
+  if (internal instanceof Map) {
+    for (const key of internal.keys()) ranges.add(String(key));
+  } else if (internal && typeof internal === "object") {
+    for (const key of Object.keys(internal)) ranges.add(key);
+  }
+
+  // 알려진 서식 고정 병합 (학교 시트 안내 / 안전망)
+  for (const fixed of ["B14:U14"]) {
+    ranges.add(fixed);
+  }
+
+  for (const range of ranges) {
+    const m = String(range).match(/([A-Z]+)(\d+):([A-Z]+)(\d+)/i);
+    if (!m) continue;
+    const r1 = parseInt(m[2], 10);
+    const r2 = parseInt(m[4], 10);
+    // 데이터 영역과 한 행이라도 겹치면 해제
+    if (r2 >= fromRow) {
+      try {
+        ws.unMergeCells(String(range));
+      } catch {
+        try {
+          ws.unMergeCells(r1, colToNum(m[1]), r2, colToNum(m[3]));
+        } catch {
+          /* ignore */
+        }
+      }
+    }
+  }
+}
+
+function clearCell(cell: ExcelJS.Cell) {
+  cell.value = null;
+  cell.font = {
+    name: "맑은 고딕",
+    size: 11,
+    color: { argb: "FF000000" },
+    bold: false,
+    italic: false,
+  };
+  cell.alignment = {
+    vertical: "middle",
+    horizontal: "center",
+    wrapText: true,
+  };
+  cell.border = {};
+  cell.fill = { type: "pattern", pattern: "none" };
+  cell.numFmt = undefined;
+}
+
 function writeLevel(
   ws: ExcelJS.Worksheet,
   row: number,
@@ -88,6 +174,8 @@ function fillStatsSheet(
   agg: RegionAgg,
   titleSuffix?: string
 ) {
+  // 통계 시트: 헤더 병합은 6~8행. 데이터는 9행~. 8행 이하는 건드리지 않음.
+  // 샘플/수식 잔존 방지: 9~(합계행) 값만 덮어씀
   const sidoCell = ws.getCell("X4");
   sidoCell.value = `시도명: ${SIDO_FULL}`;
 
@@ -102,8 +190,15 @@ function fillStatsSheet(
     고: emptyAgg(),
   };
 
+  // 방어: 종목 수와 합계 행 위치 불일치 방지
+  if (STATS_TOTAL_ROW !== 64 || SPORTS.length !== 55) {
+    console.warn(
+      `[excel] SPORTS.length=${SPORTS.length} STATS_TOTAL_ROW=${STATS_TOTAL_ROW} (expected 55/64)`
+    );
+  }
+
   SPORTS.forEach((sport, idx) => {
-    const row = 9 + idx;
+    const row = STATS_DATA_START + idx; // 9..63
     const data = agg[sport] || {
       초: emptyAgg(),
       중: emptyAgg(),
@@ -119,68 +214,34 @@ function fillStatsSheet(
     addTo(totals.고, data.고);
   });
 
-  const totalRow = 64;
+  const totalRow = STATS_TOTAL_ROW; // 64
   ws.getCell(totalRow, 3).value = "계";
   writeLevel(ws, totalRow, totals.초, 4);
   writeLevel(ws, totalRow, totals.중, 13);
   writeLevel(ws, totalRow, totals.고, 22);
 }
 
-/**
- * 데이터 행 영역(8행~)의 병합 해제.
- * 서식 원본 B14:U14 안내 병합이 7번째 종목(14행) 등과 겹쳐
- * 종목이 누락되는 문제 방지 — 반드시 데이터 쓰기 전에 호출.
- */
-function unmergeFromRow(ws: ExcelJS.Worksheet, fromRow: number) {
-  const model = (ws as unknown as { model?: { merges?: string[] } }).model;
-  const merges = [...(model?.merges || [])];
-  // ExcelJS 내부 _merges Map 형태도 처리
-  const internal = (
-    ws as unknown as { _merges?: Record<string, { model?: string } | string> }
-  )._merges;
-  if (internal && typeof internal === "object") {
-    for (const key of Object.keys(internal)) {
-      if (!merges.includes(key)) merges.push(key);
-    }
-  }
+const blackCenterStyle = {
+  font: {
+    name: "맑은 고딕",
+    size: 11,
+    color: { argb: "FF000000" },
+    bold: false,
+  } as ExcelJS.Font,
+  alignment: {
+    vertical: "middle" as const,
+    horizontal: "center" as const,
+    wrapText: true,
+  },
+  border: {
+    top: { style: "thin" as const, color: { argb: "FFB0B0B0" } },
+    left: { style: "thin" as const, color: { argb: "FFB0B0B0" } },
+    bottom: { style: "thin" as const, color: { argb: "FFB0B0B0" } },
+    right: { style: "thin" as const, color: { argb: "FFB0B0B0" } },
+  },
+};
 
-  for (const range of merges) {
-    const m = String(range).match(/([A-Z]+)(\d+):([A-Z]+)(\d+)/i);
-    if (!m) continue;
-    const r1 = parseInt(m[2], 10);
-    const r2 = parseInt(m[4], 10);
-    if (r2 >= fromRow || r1 >= fromRow) {
-      try {
-        ws.unMergeCells(String(range));
-      } catch {
-        try {
-          ws.unMergeCells(r1, colToNum(m[1]), r2, colToNum(m[3]));
-        } catch {
-          /* ignore */
-        }
-      }
-    }
-  }
-
-  // 서식 고정 병합 명시적 해제
-  for (const fixed of ["B14:U14"]) {
-    try {
-      ws.unMergeCells(fixed);
-    } catch {
-      /* ignore */
-    }
-  }
-}
-
-function colToNum(col: string): number {
-  let n = 0;
-  for (const ch of col.toUpperCase()) {
-    n = n * 26 + (ch.charCodeAt(0) - 64);
-  }
-  return n;
-}
-
-/** 학교 작성 시트(초/중/고) 샘플 행 제거 후 제출 행 채우기 */
+/** 학교 작성 시트(초/중/고) — 모든 종목 행을 누락 없이 기록 */
 function fillSchoolSheet(
   ws: ExcelJS.Worksheet,
   level: SchoolLevel,
@@ -191,59 +252,25 @@ function fillSchoolSheet(
     entry: SportEntryInput;
   }>
 ) {
-  // 1) 데이터 영역 병합 먼저 해제 (B14:U14 등) — 종목 누락 방지
-  unmergeFromRow(ws, 8);
+  // 1) 데이터 영역 병합 전부 해제 (B14:U14 등) — 종목 누락 방지의 핵심
+  unmergeOverlappingRows(ws, SCHOOL_DATA_START);
 
-  // 2) 샘플·기존 값 초기화 (최대 55종목 + 여유)
-  const clearEnd = Math.max(200, 8 + rows.length + 20);
-  for (let r = 8; r <= clearEnd; r++) {
+  // 2) 충분한 범위 초기화 (55종목 + 안내 + 여유)
+  const clearEnd = Math.max(
+    SCHOOL_DATA_START + 80,
+    SCHOOL_DATA_START + rows.length + 30
+  );
+  for (let r = SCHOOL_DATA_START; r <= clearEnd; r++) {
     for (let c = 2; c <= 21; c++) {
-      const cell = ws.getCell(r, c);
-      cell.value = null;
-      cell.font = {
-        name: "맑은 고딕",
-        size: 11,
-        color: { argb: "FF000000" },
-        bold: false,
-        italic: false,
-      };
-      cell.alignment = {
-        vertical: "middle",
-        horizontal: "center",
-        wrapText: true,
-      };
-      cell.border = {};
-      cell.fill = {
-        type: "pattern",
-        pattern: "none",
-      };
+      clearCell(ws.getCell(r, c));
     }
   }
 
   const regionShort = (r: string) => r.replace("교육지원청", "").trim();
-  const blackCenter = {
-    font: {
-      name: "맑은 고딕",
-      size: 11,
-      color: { argb: "FF000000" },
-      bold: false,
-    } as ExcelJS.Font,
-    alignment: {
-      vertical: "middle" as const,
-      horizontal: "center" as const,
-      wrapText: true,
-    },
-    border: {
-      top: { style: "thin" as const, color: { argb: "FFB0B0B0" } },
-      left: { style: "thin" as const, color: { argb: "FFB0B0B0" } },
-      bottom: { style: "thin" as const, color: { argb: "FFB0B0B0" } },
-      right: { style: "thin" as const, color: { argb: "FFB0B0B0" } },
-    },
-  };
 
-  // 3) 종목 행 전체 기록 (8행부터 연속)
+  // 3) 종목 행 전체 기록 (SCHOOL_DATA_START부터 연속, 중간 건너뛰기 없음)
   rows.forEach((item, idx) => {
-    const r = 8 + idx;
+    const r = SCHOOL_DATA_START + idx;
     const e = item.entry;
     const failSumV = e.failG1 + e.failG2 + e.failG3;
     const completeSumV = e.completeG1 + e.completeG2 + e.completeG3;
@@ -275,14 +302,17 @@ function fillSchoolSheet(
     vals.forEach((v, i) => {
       const cell = ws.getCell(r, 2 + i);
       cell.value = v;
-      cell.font = { ...blackCenter.font };
-      cell.alignment = { ...blackCenter.alignment };
-      cell.border = { ...blackCenter.border };
+      cell.font = { ...blackCenterStyle.font };
+      cell.alignment = { ...blackCenterStyle.alignment };
+      cell.border = { ...blackCenterStyle.border };
     });
   });
 
-  // 4) 안내문은 데이터 마지막 행 아래 2행 이후 (병합과 절대 겹치지 않음)
-  const guideRow = 8 + rows.length + 2;
+  // 4) 안내문은 데이터 완전 종료 후 (절대 데이터 행과 겹치지 않음)
+  const guideRow = SCHOOL_DATA_START + rows.length + 2;
+  // 안내 행 위치에도 잔여 병합이 있으면 해제
+  unmergeOverlappingRows(ws, guideRow);
+
   const guide =
     "[최저학력제 안내]\n" +
     "  - 적용시기 및 대상 : 2026년 1학기, 초4-고3 학생선수(동호인 선수 등록 학생은 제외)\n" +
@@ -304,11 +334,31 @@ function fillSchoolSheet(
   } catch {
     /* already merged */
   }
+
+  // 5) 사후 검증: 기록한 종목 수 = 입력 수 (런타임 안전장치)
+  let written = 0;
+  for (let i = 0; i < rows.length; i++) {
+    const r = SCHOOL_DATA_START + i;
+    const sport = ws.getCell(r, 7).value;
+    const num = ws.getCell(r, 2).value;
+    if (sport != null && sport !== "" && num != null) written++;
+  }
+  if (written !== rows.length) {
+    console.error(
+      `[excel] fillSchoolSheet mismatch: expected ${rows.length} sports, wrote ${written} on sheet ${ws.name}`
+    );
+  }
 }
 
+/**
+ * 제출 → 시트 행 목록.
+ * 입력 순서 유지(종목 가나다 재정렬 안 함) — 사용자가 넣은 순서 그대로 엑셀에 반영.
+ * 여러 학교 취합 시에만 학교명 순 정렬.
+ */
 function flattenSubmissions(
   submissions: SubmissionRecord[],
-  level: SchoolLevel
+  level: SchoolLevel,
+  options?: { sortSports?: boolean }
 ) {
   const out: Array<{
     region: string;
@@ -317,7 +367,7 @@ function flattenSubmissions(
     entry: SportEntryInput;
   }> = [];
 
-  const list = submissions
+  const list = [...submissions]
     .filter((s) => s.schoolLevel === level)
     .sort((a, b) => {
       const r = a.region.localeCompare(b.region, "ko");
@@ -326,9 +376,10 @@ function flattenSubmissions(
     });
 
   for (const sub of list) {
-    const sports = [...sub.sports].sort((a, b) =>
-      a.sport.localeCompare(b.sport, "ko")
-    );
+    // 기본: DB/입력 순서 유지. 필요 시 가나다 정렬.
+    const sports = options?.sortSports
+      ? [...sub.sports].sort((a, b) => a.sport.localeCompare(b.sport, "ko"))
+      : [...sub.sports];
     for (const sp of sports) {
       out.push({
         region: sub.region,
@@ -387,10 +438,9 @@ export async function exportSchoolWorkbook(
   const high = wb.getWorksheet("고등학교");
   const stats = wb.getWorksheet("(지역명) 통계") || wb.worksheets[3];
 
-  // 다른 학교급 시트 제거
   const toRemove: string[] = [];
-  for (const ws of [elem, mid, high]) {
-    if (ws && ws.name !== keepSchoolName) toRemove.push(ws.name);
+  for (const sheet of [elem, mid, high]) {
+    if (sheet && sheet.name !== keepSchoolName) toRemove.push(sheet.name);
   }
   for (const name of toRemove) {
     try {
@@ -404,7 +454,8 @@ export async function exportSchoolWorkbook(
     wb.getWorksheet(keepSchoolName) ||
     (level === "초" ? elem : level === "중" ? mid : high);
 
-  fillSchoolSheet(schoolSheet!, level, flattenSubmissions([submission], level));
+  const rows = flattenSubmissions([submission], level, { sortSports: false });
+  fillSchoolSheet(schoolSheet!, level, rows);
 
   const agg = buildAggFromSubmissions([submission]);
   fillStatsSheet(
@@ -431,21 +482,18 @@ export async function exportFullFormWorkbook(
   const elem = wb.getWorksheet("초등학교") || wb.worksheets[0];
   const mid = wb.getWorksheet("중학교") || wb.worksheets[1];
   const high = wb.getWorksheet("고등학교") || wb.worksheets[2];
-  const stats =
-    wb.getWorksheet("(지역명) 통계") || wb.worksheets[3];
+  const stats = wb.getWorksheet("(지역명) 통계") || wb.worksheets[3];
 
+  // 각 학교급 시트: 데이터 영역 병합 해제 후 전체 행 기록
   fillSchoolSheet(elem!, "초", flattenSubmissions(submissions, "초"));
   fillSchoolSheet(mid!, "중", flattenSubmissions(submissions, "중"));
   fillSchoolSheet(high!, "고", flattenSubmissions(submissions, "고"));
 
   const agg = buildAggFromSubmissions(submissions);
   const suffix =
-    options?.titleSuffix ||
-    options?.region ||
-    "경기도 전체";
+    options?.titleSuffix || options?.region || "경기도 전체";
   fillStatsSheet(stats!, agg, suffix);
 
-  // 통계 시트 이름
   if (options?.region) {
     const short = options.region.replace("교육지원청", "").trim();
     stats!.name = `${short} 통계`.slice(0, 31);
