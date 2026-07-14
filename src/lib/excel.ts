@@ -126,6 +126,60 @@ function fillStatsSheet(
   writeLevel(ws, totalRow, totals.고, 22);
 }
 
+/**
+ * 데이터 행 영역(8행~)의 병합 해제.
+ * 서식 원본 B14:U14 안내 병합이 7번째 종목(14행) 등과 겹쳐
+ * 종목이 누락되는 문제 방지 — 반드시 데이터 쓰기 전에 호출.
+ */
+function unmergeFromRow(ws: ExcelJS.Worksheet, fromRow: number) {
+  const model = (ws as unknown as { model?: { merges?: string[] } }).model;
+  const merges = [...(model?.merges || [])];
+  // ExcelJS 내부 _merges Map 형태도 처리
+  const internal = (
+    ws as unknown as { _merges?: Record<string, { model?: string } | string> }
+  )._merges;
+  if (internal && typeof internal === "object") {
+    for (const key of Object.keys(internal)) {
+      if (!merges.includes(key)) merges.push(key);
+    }
+  }
+
+  for (const range of merges) {
+    const m = String(range).match(/([A-Z]+)(\d+):([A-Z]+)(\d+)/i);
+    if (!m) continue;
+    const r1 = parseInt(m[2], 10);
+    const r2 = parseInt(m[4], 10);
+    if (r2 >= fromRow || r1 >= fromRow) {
+      try {
+        ws.unMergeCells(String(range));
+      } catch {
+        try {
+          ws.unMergeCells(r1, colToNum(m[1]), r2, colToNum(m[3]));
+        } catch {
+          /* ignore */
+        }
+      }
+    }
+  }
+
+  // 서식 고정 병합 명시적 해제
+  for (const fixed of ["B14:U14"]) {
+    try {
+      ws.unMergeCells(fixed);
+    } catch {
+      /* ignore */
+    }
+  }
+}
+
+function colToNum(col: string): number {
+  let n = 0;
+  for (const ch of col.toUpperCase()) {
+    n = n * 26 + (ch.charCodeAt(0) - 64);
+  }
+  return n;
+}
+
 /** 학교 작성 시트(초/중/고) 샘플 행 제거 후 제출 행 채우기 */
 function fillSchoolSheet(
   ws: ExcelJS.Worksheet,
@@ -137,8 +191,12 @@ function fillSchoolSheet(
     entry: SportEntryInput;
   }>
 ) {
-  // 샘플(빨간 글씨) 영역 스타일·값 완전 초기화
-  for (let r = 8; r <= 200; r++) {
+  // 1) 데이터 영역 병합 먼저 해제 (B14:U14 등) — 종목 누락 방지
+  unmergeFromRow(ws, 8);
+
+  // 2) 샘플·기존 값 초기화 (최대 55종목 + 여유)
+  const clearEnd = Math.max(200, 8 + rows.length + 20);
+  for (let r = 8; r <= clearEnd; r++) {
     for (let c = 2; c <= 21; c++) {
       const cell = ws.getCell(r, c);
       cell.value = null;
@@ -183,6 +241,7 @@ function fillSchoolSheet(
     },
   };
 
+  // 3) 종목 행 전체 기록 (8행부터 연속)
   rows.forEach((item, idx) => {
     const r = 8 + idx;
     const e = item.entry;
@@ -222,18 +281,18 @@ function fillSchoolSheet(
     });
   });
 
-  // 안내문 (데이터 아래) — 기존 B14 병합 영역 클리어 후 재기록
-  const guideRow = Math.max(8 + rows.length + 2, 16);
-  try {
-    ws.unMergeCells("B14:U14");
-  } catch {
-    /* ignore */
-  }
+  // 4) 안내문은 데이터 마지막 행 아래 2행 이후 (병합과 절대 겹치지 않음)
+  const guideRow = 8 + rows.length + 2;
   const guide =
     "[최저학력제 안내]\n" +
     "  - 적용시기 및 대상 : 2026년 1학기, 초4-고3 학생선수(동호인 선수 등록 학생은 제외)\n" +
     "  - 본 시트는 제출 데이터를 자동 취합한 결과입니다.";
   ws.getCell(guideRow, 2).value = guide;
+  ws.getCell(guideRow, 2).font = {
+    name: "맑은 고딕",
+    size: 10,
+    color: { argb: "FF000000" },
+  };
   ws.getCell(guideRow, 2).alignment = {
     vertical: "top",
     horizontal: "left",
