@@ -132,7 +132,7 @@ function clearCell(cell: ExcelJS.Cell) {
   };
   cell.border = {};
   cell.fill = { type: "pattern", pattern: "none" };
-  cell.numFmt = undefined;
+  cell.numFmt = "";
 }
 
 function writeLevel(
